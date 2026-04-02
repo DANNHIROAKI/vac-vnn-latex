@@ -1,0 +1,465 @@
+\documentclass{article}
+
+% Toggle between anonymous submission and final version.
+\newif\ifanonymized
+\anonymizedtrue % Change to \anonymizedfalse for a named/final version.
+
+% Paper metadata
+\newcommand{\PaperTitle}{Verifier-Aligned Cover Complexity for CPWL Neural Network Verification}
+\newcommand{\PaperShortTitle}{Verifier-Aligned Cover Complexity}
+\newcommand{\PaperKeywords}{Computer-aided verification; neural network verification; piecewise-linear networks; proof complexity}
+
+% Named author block for final/non-anonymous builds.
+\newcommand{\CameraReadyAuthors}{%
+  First Author \\
+  Affiliation One \\
+  Address \\
+  \texttt{author1@example.com}
+  \And
+  Second Author \\
+  Affiliation Two \\
+  Address \\
+  \texttt{author2@example.com}%
+}
+
+% Optional: enable compact numeric citations (common for space-constrained theory papers).
+\PassOptionsToPackage{numbers,compress}{natbib}
+
+\ifanonymized
+  \usepackage{neurips_2026}
+\else
+  \usepackage[final]{neurips_2026}
+\fi
+
+\usepackage[utf8]{inputenc}
+\usepackage[T1]{fontenc}
+\usepackage[hidelinks]{hyperref}
+\usepackage{url}
+\usepackage{booktabs}
+\usepackage{amsfonts}
+\usepackage{amsmath}
+\usepackage{amssymb}
+\usepackage{amsthm}
+\usepackage{nicefrac}
+\usepackage{microtype}
+\usepackage{xcolor}
+\usepackage{graphicx}
+
+\graphicspath{{figures/}}
+
+
+\title{\PaperTitle}
+
+\author{%
+\ifanonymized
+  Anonymous Author(s) \\
+  Affiliation \\
+  Address \\
+  \texttt{email}
+\else
+  \CameraReadyAuthors
+\fi
+}
+
+
+
+\begin{document}
+
+\maketitle
+
+\begin{abstract}
+Proof-producing verification is governed by the local proof objects that a trusted kernel can independently re-check, not by the search trace of a particular solver. For continuous piecewise-linear (CPWL) neural networks, however, complexity is still usually described through linear-region counts, branch-and-bound nodes, or mixed-integer encodings. We introduce \emph{Verifier-Aligned Cover Complexity} (VAC), the minimum number of verifier-visible local certified cells needed to prove either exact semantics or a threshold property over a compact domain. For CPWL expression graphs built from unary affine post-composition, addition, scalar gates, and finite-max modules (equivalently, arbitrary affine nodes after normalization), we prove a guard-certified exactification theorem: a static compilation into guard-affine fragments yields finitely many comparison hyperplanes, and any split tree aligned with them turns every nonempty leaf into an accepted exact affine cell. Hence exact-side VAC is finite. We then show that, after fixing a verifier-facing language, cell-complete proof languages realize VAC up to constant factors, and linear encodings preserve that scale up to constant factors as well. We also derive threshold lower bounds via incompatibility graphs, and prove that the explicit-dictionary decision problems \textsc{Exact-VAC-Dict} and \textsc{Thresh-VAC-Dict} are NP-complete while the corresponding optimization problems are hard to approximate within $(1-\varepsilon)\ln N$. Thus VAC isolates the language-relative semantic cover quantity underlying proof-producing CPWL verification, distinct from search traces, arrangement counts, and syntax-specific encodings.
+\end{abstract}
+
+\section{Introduction}\label{sec:introduction}
+
+Proof-producing verification is constrained by what a small trusted kernel can independently re-check. For CPWL neural networks, however, complexity is still usually measured by solver- or geometry-centric surrogates such as branch-and-bound nodes, SMT/MIP encodings, or linear-region counts~\cite{Clarke1999ModelChecking,Necula1997PCC,Katz2017Reluplex,Tjeng2019MIP,Bunel2020BranchBound,Montufar2014LinearRegions,Serra2018Counting}. These quantities matter algorithmically, but they are not the objects that the verifier finally accepts.
+
+Our starting question is therefore proof-theoretic: \emph{what is the local proof unit actually consumed by a proof-producing verifier?} In our setting it is a \emph{local certified cell}: a verifier-facing cell together with a finite payload proving either exact affine semantics on that cell or a local threshold fact. Such cells need not coincide with geometric arrangement regions. One verifier-admissible cell may merge several regions when one certificate suffices, while one geometric region may need further splitting to satisfy the local proof language.
+
+We formalize this viewpoint by \emph{Verifier-Aligned Cover Complexity} (VAC), the minimum number of verifier-visible local certified cells needed for an accepted global proof. VAC is semantic rather than algorithmic, and language-relative because the trusted interface determines which cells and payloads are admissible. For the CPWL expression graphs considered here---built from unary affine post-composition, addition, scalar gates, and finite-max modules over nonempty compact domains, with arbitrary affine fan-in normalized into that basis---we prove a guard-certified exactification theorem: a static guard compilation exposes finitely many comparison hyperplanes, and once a split tree is aligned with them, every nonempty leaf carries an accepted exact affine payload. This yields finite exact certified covers for the whole class.
+
+VAC sits strictly between arrangement geometry and concrete proof syntax. Arrangement count is only a restricted exact-side degeneration, because verifier-admissible cells may refine, merge, or overlap geometric pieces. Conversely, concrete proof syntax is not the primary comparison layer either: once a verifier-facing language is fixed, and once a proof language realizes local certified cells with bounded overhead, minimum proof size differs from VAC only by that realization overhead, in the same spirit as the separation between semantic proof content and proof-system syntax in proof complexity~\cite{CookReckhow1979}.
+
+\paragraph{Contributions.}
+We make four contributions: (i) a finite exactification theorem for the CPWL class above; (ii) a three-layer proof-complexity decomposition separating the language-relative semantic cover quantity VAC from its syntactic realization cost SCC and its bit-level encoding cost DL; (iii) a verifier-aligned upper/lower-bound package, with exact-side upper bounds from exactification and threshold-side lower bounds from incompatibility graphs; and (iv) NP-completeness of the explicit-dictionary decision problems together with logarithmic inapproximability of the associated optimization problems.
+
+The scope is intentionally narrow. We study CPWL expression graphs over nonempty compact domains; VAC is language-relative by design; and the hardness theorem concerns the explicit-dictionary selection layer, not unrestricted continuous certificate languages. We do not claim language invariance across different verifier-facing interfaces, and we do not claim that every pipeline-generated finite candidate family inherits the dictionary hardness theorem without additional representability assumptions. Section~\ref{sec:verifier-model} fixes the minimal verifier interface, Section~\ref{sec:guard-exactification} proves guard-certified exactification, Section~\ref{sec:vac-proof-languages} relates VAC to proof size and encoding, Section~\ref{sec:vac-bounds} gives upper and lower bounds, and Section~\ref{sec:vac-minimization} proves explicit-dictionary selection-layer hardness. Appendix~\ref{app:trusted-substrate} gives the fuller trusted-task semantics, while Appendices~\ref{app:guard-rules}--\ref{app:dict-hardness} contain the deferred proofs and auxiliary formalizations.
+
+\paragraph{Claim map.}
+The paper makes four logically distinct types of claims. First, a structural theorem: guard-certified exactification yields finite accepted exact covers for the CPWL class studied here. Second, a realization theorem: after fixing a verifier-facing language, cell-complete proof languages and linear encodings realize the same semantic cover scale up to fixed overhead. Third, a semantic lower-bound template: incompatibility graphs yield threshold-side lower bounds in the fixed language. Fourth, a combinatorial hardness theorem: the unrestricted explicit-dictionary selection problem is NP-complete and logarithmically hard to approximate. No claim is made here that VAC is invariant across different verifier-facing languages, nor that every pipeline-generated finite candidate family inherits the dictionary hardness theorem without additional representability assumptions.
+
+
+\section{Verifier-Aligned Certified Covers and Main Results}\label{sec:verifier-model}
+
+Appendix~\ref{app:trusted-substrate} develops the fuller task semantics. Here we keep only the interface needed later. Fix a nonempty compact domain $D\subseteq\mathbb R^n$ and a target function $g:D\to\mathbb R$. Individual verifier-visible cells $C(\gamma)$ may still be empty; such cells are discharged by \textsc{Feas}, and whenever an affine infimum over an empty cell appears we use the convention $\inf_{x\in\varnothing} a(x)=+\infty$. A \emph{verifier-aligned cell language} $\mathfrak L$ consists of finite descriptions $\gamma$ with verifier-facing set description $\mathfrak D(\gamma)$ and semantic cell
+\[
+C(\gamma):=[\![\mathfrak D(\gamma)]\!]\subseteq D.
+\]
+
+\paragraph{Trusted kernel.}
+The kernel exposes only four primitives: \textsc{Feas}, which either finds $x\in[\![\mathfrak D]\!]$ or proves emptiness; \textsc{AffOpt}, which certifies $\inf_{x\in[\![\mathfrak D]\!]}(w^\top x+b)$ for an affine tag; \textsc{Eval}, which returns a certified value $g(x)$ at a queried point; and \textsc{Check}, which deterministically validates finite symbolic payloads such as containments, local equalities or threshold claims, and finite cover proofs. Search traces and branching heuristics are never trusted.
+
+\paragraph{Certified cells and covers.}
+For threshold $t\in\mathbb R$, an \emph{exact certified cell} is $(\gamma,a,\pi^{=})$, where $a$ is affine and the accepted payload proves $g(x)=a(x)$ for all $x\in C(\gamma)$; a \emph{threshold certified cell} is $(\gamma,\pi^{\ge})$, where the accepted payload proves $g(x)\ge t$ on $C(\gamma)$. Finite families of such cells become exact or threshold certified covers once \textsc{Check} accepts a global cover payload for
+\[
+D\subseteq \bigcup_i C(\gamma_i).
+\]
+The carrier is the same on both sides; only the local statement changes.
+
+\paragraph{VAC.}
+\[
+\mathrm{VAC}^{=}_{\mathfrak L}(g;D)
+:=
+\min\{\,|\mathcal C^{=}|:\ \mathcal C^{=}\text{ is an exact certified cover of }(g,D)\,\},
+\]
+\[
+\mathrm{VAC}^{\ge}_{\mathfrak L}(g;D,t)
+:=
+\min\{\,|\mathcal C^{\ge}|:\ \mathcal C^{\ge}\text{ is a threshold certified cover of }(g,D,t)\,\},
+\]
+with value $+\infty$ if no finite accepted cover exists. VAC counts verifier-visible local proof units, not runtime, search depth, or arrangement regions.
+
+\paragraph{Proposition (basic soundness contract).}
+Accepted exact cells state correct affine equalities on their cells, and accepted threshold cells state correct local threshold claims. Consequently, if $\mathcal C^{=} = \{(\gamma_i,a_i,\pi_i^{=})\}_{i=1}^N$ is an exact certified cover, then
+\[
+\inf_{x\in D} g(x)= \min_{1\le i\le N}\ \inf_{x\in C(\gamma_i)} a_i(x),
+\]
+with the convention $\inf_{x\in\varnothing} a_i(x)=+\infty$; and if $\mathcal C^{\ge}$ is a threshold certified cover, then $g(x)\ge t$ for all $x\in D$.
+
+\paragraph{Main theorem package.}
+The rest of the paper proves four facts.
+\begin{enumerate}
+    \item \textbf{Finite exactification for CPWL graphs.} Section~\ref{sec:guard-exactification} constructs a guard language $\mathfrak L_{\mathrm{grd}}$ for allowed CPWL expression graphs and proves $\mathrm{VAC}^{=}_{\mathfrak L_{\mathrm{grd}}}(g;D)<\infty$ by compiling the network into finitely many guard-affine fragments and aligning a split tree with the resulting comparison hyperplanes.
+
+    \item \textbf{VAC, proof languages, and encoding overhead.} Section~\ref{sec:vac-proof-languages} shows that any $c$-cell-complete proof language $\mathcal P$ over $\mathfrak L$ satisfies
+    \[
+    \mathrm{VAC}^{\star}_{\mathfrak L}
+    \le
+    \mathrm{SCC}^{\star}_{\mathcal P}
+    \le
+    c\,\mathrm{VAC}^{\star}_{\mathfrak L},
+    \qquad \star\in\{=,\ge\},
+    \]
+    and under linear encodings $\mathrm{DL}^{\star}_{\mathcal P}$ is linearly equivalent to $\mathrm{SCC}^{\star}_{\mathcal P}$; see Appendix~\ref{app:proof-language-dl}.
+
+    \item \textbf{Verifier-aligned bounds.} Section~\ref{sec:vac-bounds} gives exact-side upper bounds from accepted exact covers and threshold-side lower bounds
+    \[
+    \mathrm{VAC}^{\ge}_{\mathfrak L}(g;D,t)\ge \chi(G_t^{\mathrm{inc}}(X))
+    \]
+    from incompatibility graphs. When $\inf_D g\ge t$, exact certified covers also transfer to threshold certified covers of no larger size.
+
+    \item \textbf{Selection-layer hardness.} Section~\ref{sec:vac-minimization} proves NP-completeness for the decision problems \textsc{Exact-VAC-Dict} and \textsc{Thresh-VAC-Dict}, together with $(1-\varepsilon)\ln N$ hardness for the corresponding dictionary-restricted optimization problems; Appendix~\ref{app:dict-hardness} gives the full reductions.
+\end{enumerate}
+
+This section is only the paper's API: it fixes the verifier-facing objects that later sections construct, count, upper-bound, lower-bound, and prove hard to minimize.
+
+
+
+\section{Guard-Certified Exactification and Finite Exact Covers for CPWL Networks}\label{sec:guard-exactification}
+
+We consider finite DAG expression graphs whose scalar nodes are built from four modules: unary affine post-composition nodes, addition nodes, scalar gates such as ReLU/LeakyReLU/PReLU/Abs, and finite-max nodes. Any finite-input affine map is first normalized into unary affine post-compositions plus additions, so this choice of primitives is without loss of generality for the structural arguments below. Vector outputs are handled coordinatewise. Let $u_g$ be the output node and write $g(x)=[\![u_g]\!](x)$ on nonempty compact $D$.
+
+\paragraph{Guard language.}
+The exact-side language $\mathfrak L_{\mathrm{grd}}$ uses finite sets of affine comparison literals $h(x)\le 0$ and $h(x)\ge 0$. A guard set $S$ denotes
+\[
+D_S:=D\cap \bigcap_{\lambda\in S}\lambda.
+\]
+For a scalar node $u$, a \emph{certified guard-affine fragment} is a triple $(S,a,\Pi)$, where $a$ is affine and $\Pi$ is accepted as a proof that $[\![u]\!](x)=a(x)$ for all $x\in D_S$. A finite family $\mathcal F_u=\{(S_r,a_r,\Pi_r)\}$ is \emph{certified faithful} if the cells $D_{S_r}$ cover $D$ and each payload proves the corresponding local affine equality.
+
+\paragraph{Static compilation.}
+Compilation proceeds by topological induction using only four finite rules: affine propagation, common-refinement addition, gate branching via an affine winner comparison, and finite-max with explicit winner comparisons. Each rule combines already accepted child payloads with finitely many affine guards, so faithfulness is preserved.
+
+\paragraph{Theorem (static guard-certified compilation).}
+Every scalar node $u$ in an allowed CPWL expression graph admits a finite certified faithful family $\mathcal F_u$. Applied to the output node, this yields a finite family $\mathcal F_g$ and therefore a finite comparison-hyperplane set $\mathcal H^\star$ produced by compilation, whose leafwise comparison information suffices to freeze the relevant gate branches and max comparisons. Input coordinates and constants give trivial one-fragment families, and the four rules preserve certified faithfulness inductively. Appendix~\ref{app:guard-rules} gives the full rule-by-rule proof.
+
+\paragraph{Aligned leaves.}
+A split tree recursively branches on literals from $\mathcal H^\star$; each leaf $v$ carries a path guard set $S(v)$ and domain $D_v:=D_{S(v)}$. The tree is \emph{aligned} with $\mathcal H^\star$ if, for every leaf and every $h\in\mathcal H^\star$, \textsc{Check} accepts at least one side claim $D_v\subseteq\{h\le 0\}$ or $D_v\subseteq\{h\ge 0\}$. Alignment freezes every gate branch choice and max-winner comparison leafwise.
+
+\paragraph{Lemma (aligned nonempty leaves are exact).}
+If $T$ is aligned with $\mathcal H^\star$ and $D_v\neq\varnothing$, then some fragment $(S,a,\Pi)\in\mathcal F_g$ is valid on all of $D_v$; restricting $\Pi$ along the accepted containment $D_v\subseteq D_S$ yields an exact certified cell $(S(v),a_v,\pi_v^{=})$ with $g(x)=a_v(x)$ for all $x\in D_v$. Thus every nonempty aligned leaf is an atomic exact cell in $\mathfrak L_{\mathrm{grd}}$. The proof is an aligned-leaf induction that shows the leaf signature fixes every dynamic choice in the compilation; see Appendix~\ref{app:exactification}.
+
+\paragraph{Global cover payload.}
+A finite split tree also carries a canonical cover payload: every internal node is covered by its two closed-halfspace children, and infeasible leaves can be removed once \textsc{Feas} proves emptiness. Hence exactification needs only a finite fully aligned tree and the accepted local payloads attached to its live leaves.
+
+\paragraph{Theorem (guard-certified exactification).}
+For the output of any allowed CPWL expression graph over compact $D$, there exists a finite split tree $T^\star$ aligned with $\mathcal H^\star$ such that every nonempty leaf yields an exact certified cell and the live leaves, together with the split-tree cover payload, form an accepted finite exact certified cover of $g$ in $\mathfrak L_{\mathrm{grd}}$. Consequently,
+\[
+\mathrm{VAC}^{=}_{\mathfrak L_{\mathrm{grd}}}(g;D)<+\infty.
+\]
+The theorem is structural, not optimal: $|\operatorname{Live}(T^\star)|$ is one verifier-accepted upper bound, not necessarily the minimum.
+
+
+
+\section{VAC, Proof Languages, and Realization Overhead}\label{sec:vac-proof-languages}
+
+Exactification gives finite accepted covers; the next question is what quantity those covers measure. The key distinction is between semantic cover complexity, concrete proof syntax, and bit-level encoding.
+
+Fix a verifier-facing language $\mathfrak L$. A \emph{proof language} $\mathcal P$ over $\mathfrak L$ consists of finite proof objects whose leaves denote certified cells from $\mathfrak L$ and whose global payload certifies that the leaves jointly form the required cover. This includes flat leaf tables, split trees, and more structured proof objects with the same verifier-visible leaf semantics.
+
+\paragraph{Syntactic and bit-level measures.}
+The minimum leaf count of an accepted proof object defines syntactic certificate complexity:
+\[
+\mathrm{SCC}^{=}_{\mathcal P}(g;D)
+:=
+\min\{\,|\operatorname{Leaves}(P)|:\ P\in\mathcal P\text{ is an accepted exact proof of }(g,D)\,\},
+\]
+\[
+\mathrm{SCC}^{\ge}_{\mathcal P}(g;D,t)
+:=
+\min\{\,|\operatorname{Leaves}(P)|:\ P\in\mathcal P\text{ is an accepted threshold proof of }(g,D,t)\,\}.
+\]
+Fixing a binary encoding analogously gives $\mathrm{DL}^{=}_{\mathcal P}$ and $\mathrm{DL}^{\ge}_{\mathcal P}$. The canonical flat leaf-table language $\mathcal P_{\mathrm{tab}}(\mathfrak L)$ realizes VAC exactly, because a semantic certified cover is already such a table plus one cover payload.
+
+\paragraph{Cell-complete languages.}
+A proof language is $c$-cell-complete if every accepted proof object extracts to a certified cover with no more cells than leaves, and every certified cover of size $N$ compiles into an accepted proof object with at most $cN$ leaves. The exact and threshold sides are defined separately but identically.
+
+\paragraph{Theorem (VAC/SCC equivalence under cell completeness).}
+If $\mathcal P$ is exact-side or threshold-side $c$-cell-complete over $\mathfrak L$, then for $\star\in\{=,\ge\}$,
+\[
+\mathrm{VAC}^{\star}_{\mathfrak L}
+\le
+\mathrm{SCC}^{\star}_{\mathcal P}
+\le
+c\,\mathrm{VAC}^{\star}_{\mathfrak L}.
+\]
+The left inequality extracts a semantic cover from any accepted proof object; the right inequality compiles an optimal semantic cover back into the chosen syntax with at most $c$ times as many leaves. Under the linear-encoding assumptions formalized in Appendix~\ref{app:proof-language-dl}, $\mathrm{DL}^{\star}_{\mathcal P}$ is likewise linearly equivalent to $\mathrm{SCC}^{\star}_{\mathcal P}$. The point is therefore not cross-language invariance, but a clean separation of layers: after fixing $\mathfrak L$, VAC measures the semantic cover quantity, SCC measures syntactic realization cost, and DL measures encoding cost.
+
+\paragraph{Arrangement count as a restricted degeneration.}\label{subsec:arrangement-degeneration}
+Arrangement geometry reappears only under extra exact-side assumptions. If the maximal connected exact-affine regions $U_1,\dots,U_M$ of $g$ are each realizable as one connected exact certified cell of $\mathfrak L$, and each region contains a point not lying in any other region, then the minimum number of connected exact certified cells is exactly $M$. The upper bound comes from one cell per region; the lower bound uses the region-exclusive witness points, which no connected exact cell can cover across two different maximal regions. Outside this narrow regime arrangement count is not, in general, the semantic cover quantity: a verifier-admissible cell may refine or merge geometric pieces, and threshold proofs need not recover exact affine regions at all. Appendix~\ref{app:proof-language-dl} expands the proof-language formalization and encoding details.
+
+
+
+\section{Upper and Lower Bounds for Verifier-Aligned Covers}\label{sec:vac-bounds}
+
+This section is the quantitative payoff of the previous two sections. Section~\ref{sec:guard-exactification} produced verifier-accepted finite exact covers for the CPWL class studied here, and Section~\ref{sec:vac-proof-languages} showed that, after fixing the verifier-facing language $\mathfrak L$, the paper's quantitative statements are most naturally formulated at the semantic cover layer and then transferred to cell-complete proof-language realizations up to their fixed realization constants. We now package those ingredients into the first quantitative results at the VAC layer. The upper-bound side comes from accepted exact covers produced by guard-certified exactification; the lower-bound side comes from a clean incompatibility graph on threshold witness points. The corresponding SCC and DL statements then follow from Section~\ref{sec:vac-proof-languages} and Appendix~\ref{app:proof-language-dl} up to those fixed constants.
+
+\subsection{Exact-Side Upper Bounds from Finite Exactification}
+
+Fix an allowed CPWL expression graph over nonempty compact domain $D$, let $g$ be its output, and let
+\[
+\mathcal H^\star
+\]
+be the finite comparison-hyperplane family produced in Section~\ref{sec:guard-exactification}. If $T$ is any split tree aligned with $\mathcal H^\star$, write
+\[
+\operatorname{Live}(T)
+:=
+\{v\in \operatorname{Leaves}(T): D_v\neq\varnothing\}.
+\]
+By the exactification theorem, each $v\in \operatorname{Live}(T)$ carries an exact certified cell
+\[
+\bigl(S(v),a_v,\pi_v^{=}\bigr)
+\]
+in the guard language $\mathfrak L_{\mathrm{grd}}$, and Section~\ref{sec:guard-exactification} also provides the finite global cover payload certifying that the live leaves cover $D$.
+
+\paragraph{Theorem (Exact-side upper bound from finite exactification).}
+Let $T$ be any split tree aligned with $\mathcal H^\star$. Then the family
+\[
+\Bigl\{\bigl(S(v),a_v,\pi_v^{=}\bigr): v\in \operatorname{Live}(T)\Bigr\}
+\]
+together with the split-tree cover payload is an exact certified cover of $D$. Consequently,
+\[
+\mathrm{VAC}^{=}_{\mathfrak L_{\mathrm{grd}}}(g;D)
+\le
+|\operatorname{Live}(T)|.
+\]
+In particular,
+\[
+\mathrm{VAC}^{=}_{\mathfrak L_{\mathrm{grd}}}(g;D)<+\infty.
+\]
+
+\smallskip
+\noindent\emph{Proof sketch.}
+Section~\ref{sec:guard-exactification} proves three facts simultaneously: every aligned nonempty leaf is an accepted exact certified cell; every aligned empty leaf is discharged by infeasibility; and the split tree itself carries a finite global cover payload. Therefore the live leaves are not merely a semantic partition into exact pieces; they already form an accepted exact certified cover in the sense of Section~\ref{sec:verifier-model}. VAC is the minimum size of such a cover, so it cannot exceed the number of live leaves.
+
+The point of the theorem is structural finiteness, not optimality. The right-hand side counts one accepted exactification cover, not arrangement regions of the underlying function geometry. A smaller verifier-accepted cover may still exist because exact certified cells need not coincide one-to-one with connected exact-affine regions.
+
+\subsection{Exact-to-Threshold Transfer}
+
+The exact-side theorem gives finite accepted exact covers unconditionally for the CPWL class considered here. The threshold side is different: a finite threshold certified cover can exist only when the threshold claim itself is true. The transfer from exact proofs to threshold proofs is therefore conditional on the truth of the threshold statement.
+
+\paragraph{Proposition (Exact-to-threshold transfer).}
+Fix any verifier-facing cell language $\mathfrak L$ and threshold $t\in\mathbb R$. If
+\[
+\inf_{x\in D} g(x)\ge t,
+\]
+then every exact certified cover of $(g,D)$ with $N$ cells induces a threshold certified cover of $(g,D,t)$ with the same $N$ cell descriptions. Consequently,
+\[
+\mathrm{VAC}^{\ge}_{\mathfrak L}(g;D,t)
+\le
+\mathrm{VAC}^{=}_{\mathfrak L}(g;D).
+\]
+
+\smallskip
+\noindent\emph{Proof sketch.}
+Take one exact certified cell
+\[
+(\gamma,a,\pi^{=}).
+\]
+Because
+\[
+g(x)=a(x)\qquad \forall x\in C(\gamma),
+\]
+and because the global assumption gives $\inf_D g\ge t$, we have
+\[
+\inf_{x\in C(\gamma)} a(x)
+=
+\inf_{x\in C(\gamma)} g(x)
+\ge t.
+\]
+Calling \textsc{AffOpt} on the verifier-facing description $\mathfrak D(\gamma)$ and the affine tag $a$ yields a finite certificate of this local affine infimum; no optimizer witness is needed. Concatenating that local optimization certificate with the already accepted exact payload gives a finite threshold payload on the same cell description $\gamma$. Repeating this cell by cell converts any exact certified cover into a threshold certified cover without changing its cardinality.
+
+\paragraph{Corollary (Threshold-side finiteness is conditional).}
+For every verifier-facing language $\mathfrak L$,
+\[
+\inf_{x\in D} g(x)<t
+\quad\Longrightarrow\quad
+\mathrm{VAC}^{\ge}_{\mathfrak L}(g;D,t)=+\infty.
+\]
+For the CPWL guard language,
+\[
+\inf_{x\in D} g(x)\ge t
+\quad\Longrightarrow\quad
+\mathrm{VAC}^{\ge}_{\mathfrak L_{\mathrm{grd}}}(g;D,t)
+\le
+\mathrm{VAC}^{=}_{\mathfrak L_{\mathrm{grd}}}(g;D)
+\le
+|\operatorname{Live}(T)|
+\]
+for every split tree $T$ aligned with $\mathcal H^\star$.
+
+\smallskip
+\noindent\emph{Reason.}
+If a finite threshold certified cover existed while $\inf_D g<t$, then the soundness contract from Section~\ref{sec:verifier-model} would force $g(x)\ge t$ for all $x\in D$, a contradiction. When the threshold claim is true, the proposition applies to the exactification cover from the previous subsection.
+
+Thus exactification always yields exact-side finiteness, whereas threshold-side finiteness is a semantic consequence of truth. This is precisely why threshold VAC is not just ``exact VAC with inequalities'': it measures a different proof task.
+
+\subsection{Threshold Lower Bounds via Incompatibility Graphs}
+
+Upper bounds show that verifier-aligned covers exist. To prove that they sometimes must be large, we move to a clean threshold-side lower-bound template. The question is purely semantic: which witness points can one accepted local threshold cell certify simultaneously?
+
+Fix a verifier-facing language $\mathfrak L$ and threshold $t$.
+
+\paragraph{Definition (Threshold incompatibility graph).}
+Let
+\[
+X=\{x_1,\dots,x_m\}\subseteq D
+\]
+be a finite witness set. Two points $x_i,x_j\in X$ are \emph{threshold-compatible} if there exists a threshold certified cell
+\[
+(\gamma,\pi^{\ge})
+\]
+such that
+\[
+x_i,x_j\in C(\gamma).
+\]
+If no such threshold certified cell exists, they are \emph{threshold-incompatible}. The corresponding incompatibility graph is the graph
+\[
+G_t^{\mathrm{inc}}(X)
+\]
+on vertex set $X$ with edge relation
+\[
+\{x_i,x_j\}\in E\bigl(G_t^{\mathrm{inc}}(X)\bigr)
+\iff
+x_i\text{ and }x_j\text{ are threshold-incompatible}.
+\]
+This graph is language-relative and verifier-aligned: it depends only on which pairs of points can be handled together by one accepted local threshold certificate.
+
+\paragraph{Observation.}
+Every threshold certified cell induces an independent set in $G_t^{\mathrm{inc}}(X)$. Indeed, if two vertices contained in the same accepted threshold cell were adjacent, then by definition they would be threshold-incompatible, which is impossible.
+
+\paragraph{Theorem (Chromatic-number lower bound).}
+For every finite witness set $X\subseteq D$,
+\[
+\mathrm{VAC}^{\ge}_{\mathfrak L}(g;D,t)
+\ge
+\chi\bigl(G_t^{\mathrm{inc}}(X)\bigr),
+\]
+where $\chi$ denotes chromatic number.
+
+\smallskip
+\noindent\emph{Proof sketch.}
+Take any threshold certified cover
+\[
+\mathcal C^{\ge}=\{(\gamma_i,\pi_i^{\ge})\}_{i=1}^N.
+\]
+Each cell contributes an independent vertex set
+\[
+I_i:=X\cap C(\gamma_i)
+\]
+of the incompatibility graph. Because the cells cover $D$, the sets $I_1,\dots,I_N$ cover every vertex of $X$. Hence the graph is covered by $N$ independent sets. The minimum number of independent sets needed to cover the vertices of a finite graph is exactly its chromatic number, so every threshold certified cover must have size at least $\chi(G_t^{\mathrm{inc}}(X))$. Minimizing over all covers gives the claim.
+
+Two corollaries are especially convenient.
+
+\paragraph{Corollary (Clique lower bound).}
+For every finite witness set $X\subseteq D$,
+\[
+\mathrm{VAC}^{\ge}_{\mathfrak L}(g;D,t)
+\ge
+\omega\bigl(G_t^{\mathrm{inc}}(X)\bigr),
+\]
+where $\omega$ is the clique number.
+
+\paragraph{Corollary (Pairwise incompatibility).}
+If there exist points $x_1,\dots,x_m\in D$ that are pairwise threshold-incompatible, then
+\[
+\mathrm{VAC}^{\ge}_{\mathfrak L}(g;D,t)\ge m.
+\]
+
+These lower bounds are as verifier-aligned as the upper bounds from exactification. They do not count search nodes, branch-and-bound iterations, or linear regions. They record only which witness points one accepted local threshold certificate can or cannot handle together. In that sense they are genuine proof-complexity lower bounds at the fixed semantic cover layer.
+
+Taken together, Sections~\ref{sec:guard-exactification}, \ref{sec:vac-proof-languages}, and the present section give the core quantitative picture of the paper: exactification supplies accepted finite exact covers, threshold incompatibility supplies language-relative lower bounds, and VAC is the fixed-language semantic cover quantity that both sides meet on. Section~\ref{sec:vac-minimization} will then ask the complementary algorithmic question: once an explicit finite pool of candidate verifier-visible cells has been exposed, how hard is it to find the smallest accepted subcover?
+
+
+
+\section{Selection-Layer Complexity for Explicit Dictionaries}\label{sec:vac-minimization}
+
+The previous sections identify the fixed-language semantic cover quantity. We now isolate the remaining algorithmic question at the explicit-dictionary selection layer: once a finite family of verifier-visible candidate cells has already been exposed, how hard is it to choose the smallest accepted subcover? Full reductions are in Appendix~\ref{app:dict-hardness}.
+
+\paragraph{Dictionary-restricted problems.}
+Work over an explicit finite rational point domain $U=\{u_1,\dots,u_N\}\subseteq\mathbb Q^n$ with explicit values $g(u_i)\in\mathbb Q$. An exact dictionary entry is $(A_j,a_j)$ with $A_j\subseteq U$ and affine $a_j$; it is valid when $g(u)=a_j(u)$ for all $u\in A_j$. \textsc{Exact-VAC-Dict} asks whether at most $k$ valid entries from a dictionary $\mathcal D_=$ cover $U$, and $\operatorname{OPT}_{=}(U,\mathcal D_=)$ denotes the minimum size of such a cover. For rational threshold $t$, \textsc{Thresh-VAC-Dict} is defined analogously using valid threshold entries $A_j\subseteq U$ satisfying $g(u)\ge t$ for all $u\in A_j$, with optimum $\operatorname{OPT}_{\ge}(U,\mathcal D_{\ge},t)$.
+
+These problems isolate only the \emph{selection layer}: no continuous search or candidate generation remains; all residual difficulty is combinatorial.
+
+\paragraph{Theorem (NP-completeness of explicit-dictionary VAC selection).}
+The decision problems \textsc{Exact-VAC-Dict} and \textsc{Thresh-VAC-Dict} are NP-complete. Membership in NP is immediate because a proposed subcover can be checked by finite inspection. For NP-hardness, reduce from \textsc{Set Cover}: encode each universe element as a rational point, set $g\equiv 0$, and use one dictionary entry per set, with affine tag $a_j\equiv 0$ on the exact side and threshold $t=0$ on the threshold side. Valid subcovers of the dictionary are then exactly set covers, and the optimum value is preserved.
+
+\paragraph{Corollary (Logarithmic inapproximability of explicit-dictionary VAC minimization).}
+For every fixed $\varepsilon\in(0,1)$, unless $\mathrm P=\mathrm{NP}$, neither corresponding optimization problem $\operatorname{OPT}_{=}(U,\mathcal D_=)$ nor $\operatorname{OPT}_{\ge}(U,\mathcal D_{\ge},t)$ admits a polynomial-time approximation within factor $(1-\varepsilon)\ln N$. The classical logarithmic barrier for \textsc{Set Cover} transfers directly through the optimum-preserving reduction.
+
+The conclusion is deliberately scoped. Appendix~\ref{app:dict-hardness} proves hardness for the unrestricted explicit-dictionary selection problem. A concrete proof pipeline inherits this hardness only if the class of candidate families it can expose is rich enough to realize hard set-cover instances, formalized in Theorem~G.15. Absent such a representability assumption, no generic hardness transfer follows from the present reduction alone. Candidate generation and cover selection are therefore distinct sources of difficulty.
+
+
+\subsection{Conclusion and Scope}
+
+This paper resolves one specific proof-complexity question for proof-producing CPWL verification. For the CPWL expression graphs studied here, it proves finite guard-certified exactification and therefore finite exact certified covers. After fixing a verifier-facing language, it separates the semantic cover quantity VAC from its syntactic realizations and encodings, and shows that explicit-dictionary cover minimization already contains a genuine combinatorial hardness source.
+
+At the same time, the scope is intentionally limited. The structural theorem is proved for CPWL expression graphs over nonempty compact domains; VAC is language-relative by design; and the hardness theorem is unconditional only for unrestricted explicit dictionaries, with transfer to concrete pipelines requiring additional representability assumptions on the exposed candidate-family class.
+
+The resulting picture is therefore layered rather than absolute: arrangement count, proof syntax, and bit-level encoding are not the semantic cover quantity itself. Once the verifier-facing language is fixed, VAC is the semantic cover quantity being realized, while SCC and DL record realization and encoding overhead.
+
+
+% Uncomment for the final version if needed.
+% \begin{ack}
+% Replace this paragraph with acknowledgments, funding disclosure, and competing-interest disclosure.
+% \end{ack}
+
+\newpage
+\bibliographystyle{plainnat}
+\bibliography{refs}
+
+\newpage
+\appendix
+\input{appendix/Appendix_A}
+\input{appendix/Appendix_B}
+\input{appendix/Appendix_C}
+\input{appendix/Appendix_D}
+\input{appendix/Appendix_E}
+\input{appendix/Appendix_F}
+\input{appendix/Appendix_G}
+\input{appendix/Appendix_H}
+
+\newpage
+
+
+\end{document}

@@ -1,0 +1,526 @@
+\section{Formal Definitions of Certified Cells, Covers, and Payload Syntax}
+\label{app:cell-payload-syntax}
+
+Section~\ref{sec:verifier-model} intentionally keeps the main text at the interface level. It names the trusted kernel, exact and threshold certified cells, exact and threshold certified covers, and the complexity quantities built from them, but it suppresses most of the formal backend. This appendix restores that backend. Its purpose is not to add new structural theorems. Its purpose is to make fully explicit what an \emph{accepted cover} is as a finite verifier-visible object.
+
+The key point is simple. An accepted cover is not just a semantic statement of the form
+\[
+D\subseteq \bigcup_{i=1}^N C(\gamma_i).
+\]
+It is a finite tuple consisting of:
+\begin{enumerate}
+    \item a finite table of verifier-facing cell descriptions;
+    \item a finite local payload attached to each listed cell; and
+    \item one finite global cover payload that derives the cover statement from accepted containment, local-cover, or miss-set emptiness facts.
+\end{enumerate}
+This appendix fixes those finite objects abstractly. Later parts of the paper then instantiate them in concrete ways:
+\begin{itemize}
+    \item Section~\ref{sec:guard-exactification} and Appendix~\ref{app:exactification} realize exact cells by aligned guard leaves and realize global cover payloads by split-tree cover derivations;
+    \item Section~\ref{sec:vac-bounds} and the continuous-side arguments use the same backend with threshold payloads and finite miss-set cover certificates;
+    \item Appendix~\ref{app:proof-language-dl} then interprets these same accepted covers inside proof languages and description-length notions.
+\end{itemize}
+
+\subsection{Verifier-Facing Cell Descriptions and Local Conclusions}
+
+Fix a verifier-facing cell language $\mathfrak L$. Every description
+\[
+\gamma\in \mathfrak L
+\]
+is a finite object equipped with a verifier-facing set description
+\[
+\mathfrak D(\gamma)
+\]
+and a semantic cell
+\[
+C(\gamma):=[\![\mathfrak D(\gamma)]\!]\subseteq D.
+\]
+We also introduce one distinguished root description
+\[
+\top_D,
+\]
+with
+\[
+\mathfrak D(\top_D):=\mathfrak D_D,
+\qquad
+C(\top_D)=D.
+\]
+This is only a bookkeeping device for global cover derivations.
+
+At the local level, the verifier ever only accepts one of two conclusion types.
+
+\paragraph{Exact local conclusion.}
+Given $\gamma\in\mathfrak L$ and an affine function
+\[
+a(x)=w^\top x+b,
+\]
+the corresponding exact local statement is
+\[
+\mathrm{Eq}(\gamma,a):
+\qquad
+\forall x\in C(\gamma),\ g(x)=a(x).
+\]
+
+\paragraph{Threshold local conclusion.}
+Given $\gamma\in\mathfrak L$ and a threshold $t\in\mathbb R$, the corresponding threshold local statement is
+\[
+\mathrm{Thr}(\gamma,t):
+\qquad
+\forall x\in C(\gamma),\ g(x)\ge t.
+\]
+
+A \emph{local payload} is any finite verifier-visible object from which \textsc{Check}, possibly together with explicit invocations of the other trusted primitives, can deterministically validate one of these two statements. We do \emph{not} fix a bit-level encoding here. The only requirements are:
+\begin{enumerate}
+    \item finiteness;
+    \item verifier-checkability through the trusted kernel;
+    \item explicit attachment to one named cell description $\gamma$.
+\end{enumerate}
+
+This formulation is deliberately broad. It covers both direct payloads, such as one explicit leaf-equality certificate, and composite payloads, such as a lower-bound proof plus an affine optimization certificate plus a scalar threshold check.
+
+\subsection{Local Payload Schemata}
+
+The main text writes local payloads only as $\pi^{=}$ and $\pi^{\ge}$. Here we make their finite structure explicit.
+
+\paragraph{Exact local payload schema.}
+A finite exact local payload over $(\gamma,a)$ is a triple
+\[
+\pi^{=}
+=
+(\Pi^{\mathrm{cell}},\Pi^{\mathrm{stmt}},\Pi^{\mathrm{aux}}),
+\]
+where:
+\begin{enumerate}
+    \item $\Pi^{\mathrm{cell}}$ is a finite cell block identifying $\gamma$ and any finite subdescriptions or local side data referenced by the proof;
+    \item $\Pi^{\mathrm{stmt}}$ is a finite derivation block that the verifier accepts as a proof of
+    \[
+    \mathrm{Eq}(\gamma,a);
+    \]
+    \item $\Pi^{\mathrm{aux}}$ is an optional finite auxiliary block, carrying additional verifier-visible data not needed merely to accept the local equality itself, for example optimizer witnesses, side certificates, child-payload references, or normalization metadata.
+\end{enumerate}
+
+An \emph{accepted exact certified cell} is then a triple
+\[
+\mathfrak c=(\gamma,a,\pi^{=})
+\]
+for which the verifier accepts $\Pi^{\mathrm{stmt}}$ as a proof of $\mathrm{Eq}(\gamma,a)$. As in the main text, its semantic domain is written
+\[
+|\mathfrak c|:=C(\gamma).
+\]
+
+\paragraph{Threshold local payload schema.}
+A finite threshold local payload over $(\gamma,t)$ is a triple
+\[
+\pi^{\ge}
+=
+(\Pi^{\mathrm{cell}},\Pi^{\mathrm{stmt}},\Pi^{\mathrm{aux}}),
+\]
+where:
+\begin{enumerate}
+    \item $\Pi^{\mathrm{cell}}$ again identifies the local cell description and any finite subdescriptions referenced by the proof;
+    \item $\Pi^{\mathrm{stmt}}$ is a finite derivation block accepted by the verifier as a proof of
+    \[
+    \mathrm{Thr}(\gamma,t);
+    \]
+    \item $\Pi^{\mathrm{aux}}$ is an optional finite auxiliary block, for example a local affine under-estimator, a center evaluation witness, an optimizer certificate, or any other finite subpayload used compositionally by the threshold proof.
+\end{enumerate}
+
+An \emph{accepted threshold certified cell} is a pair
+\[
+\mathfrak c=(\gamma,\pi^{\ge})
+\]
+for which the verifier accepts $\Pi^{\mathrm{stmt}}$ as a proof of $\mathrm{Thr}(\gamma,t)$. Again,
+\[
+|\mathfrak c|:=C(\gamma).
+\]
+
+\paragraph{Proposition (local soundness contract).}
+If the verifier accepts an exact certified cell $(\gamma,a,\pi^{=})$, then
+\[
+g(x)=a(x)
+\qquad
+\forall x\in C(\gamma).
+\]
+If it accepts a threshold certified cell $(\gamma,\pi^{\ge})$, then
+\[
+g(x)\ge t
+\qquad
+\forall x\in C(\gamma).
+\]
+
+\paragraph{Proof.}
+This is exactly what the accepted local derivation blocks certify. \qed
+
+\paragraph{Optimization consequence of an exact local payload.}
+Suppose $(\gamma,a,\pi^{=})$ is an accepted exact certified cell and \textsc{AffOpt} accepts a finite optimizer block proving
+\[
+\mu = \inf_{x\in C(\gamma)} a(x).
+\]
+Then
+\[
+\mu = \inf_{x\in C(\gamma)} g(x).
+\]
+If $C(\gamma)$ is nonempty and compact, the infimum is attained and equals the local minimum of $g$ on that cell.
+
+\paragraph{Proof.}
+By local soundness, $g=a$ on $C(\gamma)$. Therefore the two infima coincide on the same set. \qed
+
+\paragraph{Derived threshold payload from an exact cell.}
+The threshold schema is intentionally broad enough to contain exact-to-threshold transformations as one special case. Concretely, if the verifier accepts an exact certified cell $(\gamma,a,\pi^{=})$ and also accepts a finite affine-optimization payload proving
+\[
+\inf_{x\in C(\gamma)} a(x)\ge t,
+\]
+then the finite combined payload
+\[
+\mathrm{LiftThr}(\pi^{=},\pi^{\mathrm{opt}})
+\]
+is an accepted threshold payload for the same cell $\gamma$.
+
+\paragraph{Proof.}
+The checker combines the accepted equality statement
+\[
+g(x)=a(x)
+\qquad \forall x\in C(\gamma)
+\]
+with the accepted affine lower bound
+\[
+a(x)\ge t
+\qquad \forall x\in C(\gamma),
+\]
+which is itself implied by the optimizer statement. Hence it accepts
+\[
+g(x)\ge t
+\qquad \forall x\in C(\gamma).
+\]
+\qed
+
+This is the abstract form of the exact-to-threshold transfer used later in Section~\ref{sec:vac-bounds}.
+
+\subsection{Cover Sequents and the Global Cover-Payload Grammar}
+
+To turn local certified cells into a cover, the verifier needs a finite object proving that the listed cells jointly cover $D$. We formalize this with \emph{cover sequents}.
+
+\paragraph{Cover sequents.}
+Let $\eta$ be any verifier-facing description whose semantic set is $C(\eta)\subseteq D$, and let $\Gamma$ be a finite set of descriptions. The sequent
+\[
+\eta \rightsquigarrow \Gamma
+\]
+means the semantic inclusion
+\[
+C(\eta)
+\subseteq
+\bigcup_{\gamma\in\Gamma} C(\gamma).
+\]
+A \emph{global cover payload} for a target family $\Gamma_\ast=\{\gamma_1,\dots,\gamma_N\}$ is a finite derivation of the root sequent
+\[
+\top_D \rightsquigarrow \Gamma_\ast.
+\]
+
+The grammar is built from finite atomic cover steps plus finite composition rules. We use the following atomic forms.
+
+\paragraph{(i) Containment atom.}
+If the verifier accepts a finite containment proof
+\[
+\rho_{\eta\subseteq \eta'}
+\]
+of
+\[
+C(\eta)\subseteq C(\eta'),
+\]
+then we may form the one-step cover sequent
+\[
+\eta \rightsquigarrow \{\eta'\}.
+\]
+
+\paragraph{(ii) Direct local-cover atom.}
+If the verifier accepts a finite payload
+\[
+\rho_{\eta\triangleleft \Gamma}
+\]
+proving the local cover statement
+\[
+C(\eta)
+\subseteq
+\bigcup_{\gamma\in\Gamma} C(\gamma),
+\]
+then we may form the sequent
+\[
+\eta \rightsquigarrow \Gamma.
+\]
+This is the abstract backend for split-tree two-child cover steps, local partition steps, or any other direct finite cover claim supported by the language.
+
+\paragraph{(iii) Miss-set emptiness atom.}
+Suppose the language admits a finite verifier-facing descriptor
+\[
+\mathfrak D^{\mathrm{miss}}_{\eta;\Gamma}
+\]
+whose semantic set is exactly
+\[
+[\![\mathfrak D^{\mathrm{miss}}_{\eta;\Gamma}]\!]
+=
+C(\eta)\setminus \bigcup_{\gamma\in\Gamma} C(\gamma).
+\]
+If \textsc{Feas} accepts a finite infeasibility certificate proving this miss-set empty, then we may again form the sequent
+\[
+\eta \rightsquigarrow \Gamma.
+\]
+This is the abstract form used later for Boolean miss-set cover certificates such as the finite ball-cover payloads in the continuous-side arguments.
+
+These atoms are then combined by two explicit grammar rules.
+
+\paragraph{(iv) Composition rule.}
+Suppose we have already derived
+\[
+\eta \rightsquigarrow \{\eta_1,\dots,\eta_m\}
+\]
+and, for each $1\le j\le m$, also derived
+\[
+\eta_j \rightsquigarrow \Gamma_j.
+\]
+Then we may derive
+\[
+\eta \rightsquigarrow \bigcup_{j=1}^m \Gamma_j.
+\]
+Semantically, this is just substitution of child covers into a parent cover.
+
+\paragraph{(v) Empty-target elimination.}
+If \textsc{Feas} accepts a finite certificate proving
+\[
+C(\eta_0)=\varnothing,
+\]
+and we have already derived
+\[
+\eta \rightsquigarrow \Gamma\cup\{\eta_0\},
+\]
+then we may derive
+\[
+\eta \rightsquigarrow \Gamma.
+\]
+Thus empty cells may be dropped from target covers without changing the semantic union.
+
+\paragraph{Definition (global cover-payload grammar).}
+A \emph{global cover payload} is any finite derivation tree whose nodes are cover sequents and whose leaves are atomic containments, direct local-cover atoms, or miss-set emptiness atoms, and whose internal steps use only the two rules above. A target family
+\[
+\Gamma_\ast=\{\gamma_1,\dots,\gamma_N\}
+\]
+is said to be \emph{accepted as a global cover} when such a derivation concludes
+\[
+\top_D \rightsquigarrow \Gamma_\ast.
+\]
+
+This formulation makes the finiteness completely explicit. An accepted global cover is not an infinite semantic claim. It is a finite derivation tree built from finitely many local cover atoms, finitely many containment atoms, finitely many miss-set emptiness certificates, and finitely many composition steps.
+
+\paragraph{Proposition (soundness of cover derivations).}
+Every accepted derivation of a cover sequent
+\[
+\eta \rightsquigarrow \Gamma
+\]
+is semantically sound, i.e.
+\[
+C(\eta)
+\subseteq
+\bigcup_{\gamma\in\Gamma} C(\gamma).
+\]
+
+\paragraph{Proof.}
+Proceed by induction on the derivation tree. For atomic containments and direct local-cover atoms, soundness is exactly the content of the accepted finite payloads. For miss-set atoms, emptiness of
+\[
+C(\eta)\setminus \bigcup_{\gamma\in\Gamma} C(\gamma)
+\]
+immediately yields the desired cover inclusion. For a composition step, if
+\[
+C(\eta)\subseteq \bigcup_{j=1}^m C(\eta_j)
+\quad\text{and}\quad
+C(\eta_j)\subseteq \bigcup_{\gamma\in\Gamma_j} C(\gamma)
+\ \, (1\le j\le m),
+\]
+then
+\[
+C(\eta)
+\subseteq
+\bigcup_{j=1}^m\ \bigcup_{\gamma\in\Gamma_j} C(\gamma)
+=
+\bigcup_{\gamma\in \cup_j\Gamma_j} C(\gamma).
+\]
+For empty-target elimination, replacing
+\[
+\Gamma\cup\{\eta_0\}
+\]
+by
+\[
+\Gamma
+\]
+does not change the union because $C(\eta_0)=\varnothing$. \qed
+
+\subsection{Accepted Certified Covers as Finite Objects}
+
+With the local schemata and the global cover grammar fixed, an accepted certified cover is now an explicit finite object.
+
+\paragraph{Definition (accepted exact certified cover object).}
+An accepted exact certified cover object is a pair
+\[
+\mathfrak C^{=}
+=
+\Bigl(\{(\gamma_i,a_i,\pi_i^{=})\}_{i=1}^N,\ \pi^{\mathrm{cov}}\Bigr),
+\]
+where:
+\begin{enumerate}
+    \item each $(\gamma_i,a_i,\pi_i^{=})$ is an accepted exact certified cell;
+    \item $\pi^{\mathrm{cov}}$ is a finite global cover payload deriving
+    \[
+    \top_D \rightsquigarrow \{\gamma_1,\dots,\gamma_N\}.
+    \]
+\end{enumerate}
+Its size is the number $N$ of listed local cells.
+
+\paragraph{Definition (accepted threshold certified cover object).}
+An accepted threshold certified cover object is a pair
+\[
+\mathfrak C^{\ge}
+=
+\Bigl(\{(\gamma_i,\pi_i^{\ge})\}_{i=1}^N,\ \pi^{\mathrm{cov}}\Bigr),
+\]
+where:
+\begin{enumerate}
+    \item each $(\gamma_i,\pi_i^{\ge})$ is an accepted threshold certified cell;
+    \item $\pi^{\mathrm{cov}}$ is a finite global cover payload deriving
+    \[
+    \top_D \rightsquigarrow \{\gamma_1,\dots,\gamma_N\}.
+    \]
+\end{enumerate}
+Again, its size is the number of listed local cells.
+
+Thus every accepted cover is concretely a finite cell table, a finite local-payload table, and one finite global derivation tree. This is the formal backend of the shorter cover definitions given in Section~\ref{sec:verifier-model}.
+
+\paragraph{Remark on empty cells.}
+By the empty-target elimination rule, empty listed cells can always be removed once \textsc{Feas} has discharged them as empty. Therefore minimum-size covers may always be taken over nonempty cells alone. The convention
+\[
+\inf_{x\in\varnothing} a(x)=+\infty
+\]
+used elsewhere in the paper is compatible with this simplification.
+
+\subsection{Global Soundness Contract for Accepted Covers}
+
+We can now restate the cover-level soundness contract in fully formal form.
+
+\paragraph{Proposition (threshold-cover soundness).}
+Let
+\[
+\mathfrak C^{\ge}
+=
+\Bigl(\{(\gamma_i,\pi_i^{\ge})\}_{i=1}^N,\ \pi^{\mathrm{cov}}\Bigr)
+\]
+be an accepted threshold certified cover object for the threshold $t$. Then
+\[
+g(x)\ge t
+\qquad
+\forall x\in D.
+\]
+
+\paragraph{Proof.}
+By soundness of the global cover derivation,
+\[
+D\subseteq \bigcup_{i=1}^N C(\gamma_i).
+\]
+Hence every $x\in D$ lies in some $C(\gamma_i)$. By local threshold soundness on that cell,
+\[
+g(x)\ge t.
+\]
+Since $x$ was arbitrary, the claim follows. \qed
+
+\paragraph{Proposition (exact-cover soundness).}
+Let
+\[
+\mathfrak C^{=}
+=
+\Bigl(\{(\gamma_i,a_i,\pi_i^{=})\}_{i=1}^N,\ \pi^{\mathrm{cov}}\Bigr)
+\]
+be an accepted exact certified cover object. Then
+\[
+\inf_{x\in D} g(x)
+=
+\inf_{x\in \cup_i C(\gamma_i)} g(x)
+=
+\min_{1\le i\le N}\ \inf_{x\in C(\gamma_i)} a_i(x),
+\]
+with the convention that empty cells contribute $+\infty$.
+
+\paragraph{Proof.}
+The accepted global cover payload implies
+\[
+D\subseteq \bigcup_{i=1}^N C(\gamma_i).
+\]
+Because every $C(\gamma_i)$ lies inside $D$, the union on the right is a subset of $D$, so in fact
+\[
+\inf_{x\in D} g(x)
+=
+\inf_{x\in \cup_i C(\gamma_i)} g(x).
+\]
+Now on each cell $C(\gamma_i)$, local exact soundness gives
+\[
+g(x)=a_i(x)
+\qquad \forall x\in C(\gamma_i),
+\]
+so
+\[
+\inf_{x\in C(\gamma_i)} g(x)
+=
+\inf_{x\in C(\gamma_i)} a_i(x).
+\]
+Since the union is finite,
+\[
+\inf_{x\in \cup_i C(\gamma_i)} g(x)
+=
+\min_{1\le i\le N}\ \inf_{x\in C(\gamma_i)} g(x)
+=
+\min_{1\le i\le N}\ \inf_{x\in C(\gamma_i)} a_i(x).
+\]
+This is the desired identity. \qed
+
+\paragraph{Corollary (exact-cover optimization by local affine optimization).}
+Suppose in addition that for each $i$, \textsc{AffOpt} accepts a finite optimizer block proving
+\[
+\mu_i = \inf_{x\in C(\gamma_i)} a_i(x).
+\]
+Then
+\[
+\inf_{x\in D} g(x)=\min_{1\le i\le N}\mu_i.
+\]
+If every listed cell is nonempty and compact, then each infimum is attained and the same formula holds with local minima and global minimum in place of infima.
+
+\paragraph{Proof.}
+Combine the previous proposition with the accepted affine optimizer statements. \qed
+
+\subsection{Concrete Instantiations Used in the Paper}
+
+It is useful to close by recording how the abstract syntax above is instantiated in the paper's two main semantic branches.
+
+\paragraph{Guard-exact exact cells.}
+In Section~\ref{sec:guard-exactification}, the language is
+\[
+\mathfrak L_{\mathrm{grd}},
+\]
+where a description $\gamma$ is a finite guard set $S$ and
+\[
+C(\gamma)=D_S.
+\]
+There the local exact payload $\pi^{=}$ is the restricted fragment-equality payload produced by the static CPWL compilation. The global cover payload is the split-tree derivation assembled from finitely many two-child cover atoms and finitely many empty-leaf eliminations. Appendix~\ref{app:exactification} gives this construction in full detail.
+
+\paragraph{Threshold-side instantiations.}
+On the threshold side, the paper only needs the abstract schema fixed above: a local threshold payload is any finite verifier-visible object proving
+\[
+\forall x\in C(\gamma),\ g(x)\ge t.
+\]
+Depending on the language, such a payload may be direct, or it may itself be composite---for example, a local affine lower-bound block plus an affine optimizer certificate plus a scalar threshold check. Whenever the corresponding language admits a finite miss-set descriptor, the global cover payload can be realized through the miss-set emptiness atom of the cover grammar defined above.
+
+\paragraph{Why this appendix matters for exactification.}
+The structural exactification theorem in Section~\ref{sec:guard-exactification} proves more than leafwise semantic exactness. To conclude that the live leaves form an \emph{accepted exact certified cover} in the sense of Section~\ref{sec:verifier-model}, one still needs exactly the backend fixed here:
+\begin{enumerate}
+    \item a finite local exact payload attached to each leaf; and
+    \item a finite derivation of the root cover sequent
+    \[
+    \top_D \rightsquigarrow \{\text{live leaves}\}.
+    \]
+\end{enumerate}
+That is why Appendix~\ref{app:exactification} includes an explicit global cover-payload construction lemma rather than stopping at semantic coverage alone.
+
+In short, this appendix turns the main text's interface-level terms---certified cell, certified cover, accepted cover payload---into precise finite verifier-facing objects. The later structural, complexity, and hardness results are then statements about these explicit objects rather than about an informal semantic cover notion.

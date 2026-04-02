@@ -1,0 +1,575 @@
+\section{Aligned Trees, Global Cover Payload, and Finite Exactification}
+\label{app:exactification}
+
+This appendix closes the exactification argument from Section~\ref{sec:guard-exactification}. Appendix~\ref{app:guard-rules} already proved the local structural part: every scalar node in an allowed CPWL expression graph admits a finite certified-faithful compilation into guard-affine fragments. What remains is the global closure step. We must show that once a split tree freezes, leafwise, the side of every relevant comparison hyperplane, then:
+\begin{enumerate}
+    \item some compiled fragment is compatible with every nonempty aligned leaf;
+    \item that compatible fragment restricts to an accepted exact certified cell on the leaf;
+    \item the split tree itself yields a finite global cover payload in the precise cover grammar of Appendix~\ref{app:cell-payload-syntax};
+    \item after removing empty leaves, the remaining exact leaves form an accepted finite exact certified cover.
+\end{enumerate}
+
+The third point is the formal closure that the main text needs most. It upgrades ``semantic exactification'' to ``accepted exact certified cover'' and is therefore the strict backend of both Section~\ref{sec:guard-exactification} and the exact-side upper bound in Section~\ref{sec:vac-bounds}.
+
+Throughout the appendix we fix the output node $u_g$ of the expression graph, write
+\[
+ g(x):=[[u_g]](x),
+\]
+and let
+\[
+ \mathcal F_g=\{(S_r,a_r,\Pi_r)\}_{r=1}^{R_g}
+\]
+be the compiled certified-faithful family for the output node supplied by Appendix~\ref{app:guard-rules}. We also write
+\[
+ \mathcal H^\star
+\]
+for the finite set of affine comparison hyperplanes introduced during that compilation.
+
+\subsection{Split Trees, Leaf Descriptions, and Alignment}
+
+A split tree recursively refines the domain by affine comparison literals from the guard language.
+
+\paragraph{Definition D.1 (split-tree semantics).}
+Let $T$ be a finite rooted binary tree. Every node $v$ carries a guard set $S(v)$ such that:
+\begin{enumerate}
+    \item the root $r$ has
+    \[
+    S(r)=\varnothing;
+    \]
+    \item if an internal node $v$ splits on a hyperplane
+    \[
+    h_v(x)=0,
+    \]
+    then its two children, denoted $v^-$ and $v^+$, have guard sets
+    \[
+    S(v^-)=S(v)\cup\{h_v\le 0\},
+    \qquad
+    S(v^+)=S(v)\cup\{h_v\ge 0\}.
+    \]
+\end{enumerate}
+For every node $v$, let
+\[
+ \eta_v:=S(v)
+\]
+viewed as a verifier-facing description in the guard language. Its semantic domain is
+\[
+ C(\eta_v)=D_{S(v)}.
+\]
+For leaves we abbreviate
+\[
+ D_v:=C(\eta_v)=D_{S(v)}.
+\]
+When $v=r$, we identify $\eta_r$ with the root description $\top_D$ from Appendix~\ref{app:cell-payload-syntax}, since both describe the full domain $D$.
+
+\paragraph{Proposition D.2 (leaf coverage).}
+For every split tree $T$,
+\[
+ D\subseteq \bigcup_{v\in \operatorname{Leaves}(T)} D_v.
+\]
+
+\paragraph{Proof.}
+At the root we have $D_{S(r)}=D$. If a node with guard set $S(v)$ is split on $h_v=0$, then the two closed halfspaces cover the ambient space, so
+\[
+ D_{S(v)}
+ \subseteq
+ D_{S(v)\cup\{h_v\le 0\}}
+ \ \cup\
+ D_{S(v)\cup\{h_v\ge 0\}}.
+\]
+Iterating this finite cover step down the tree yields the stated leaf coverage. \qed
+
+The exactification condition is not merely that a leaf contains points on one side of a hyperplane. It is that the whole leaf domain has a verifier-visible side relation to every comparison hyperplane that matters to the compiled fragments.
+
+\paragraph{Definition D.3 (leaf-side signatures and aligned leaves).}
+Let
+\[
+ \mathcal H=\{h_1,\dots,h_M\}
+\]
+be a finite family of affine hyperplanes. For a leaf $v$ and a hyperplane $h_m\in\mathcal H$, define
+\[
+ \Sigma_v(h_m)\subseteq\{\le,\ge\}
+\]
+by declaring:
+\begin{enumerate}
+    \item $\le\in \Sigma_v(h_m)$ iff the verifier accepts a finite side certificate proving
+    \[
+    D_v\subseteq\{h_m\le 0\};
+    \]
+    \item $\ge\in \Sigma_v(h_m)$ iff the verifier accepts a finite side certificate proving
+    \[
+    D_v\subseteq\{h_m\ge 0\}.
+    \]
+\end{enumerate}
+If both signs belong to $\Sigma_v(h_m)$, then necessarily
+\[
+ D_v\subseteq\{h_m=0\}.
+\]
+We say that $v$ is \emph{aligned with $\mathcal H$} if
+\[
+ \Sigma_v(h_m)\neq\varnothing
+ \qquad
+ \forall h_m\in\mathcal H.
+\]
+A split tree is \emph{aligned with $\mathcal H$} if every leaf is aligned with $\mathcal H$.
+
+\paragraph{Definition D.4 (compatible literals and compatible fragments).}
+Fix a leaf $v$ aligned with $\mathcal H^\star$.
+\begin{enumerate}
+    \item A literal $\lambda$ induced by a hyperplane $h\in\mathcal H^\star$ is \emph{compatible with $v$} if its sign belongs to $\Sigma_v(h)$.
+    \item A compiled fragment $(S,a,\Pi)$ is \emph{compatible with $v$} if every literal in $S$ is compatible with $v$.
+\end{enumerate}
+When $(S,a,\Pi)$ is compatible with $v$, the accepted side certificates for the literals in $S$ bundle into a finite containment proof, denoted
+\[
+ \rho_{v\subseteq S},
+\]
+with verifier-accepted conclusion
+\[
+ D_v\subseteq D_S.
+\tag{D.1}
+\]
+
+Thus the aligned-leaf problem is reduced to a single combinatorial statement: every nonempty aligned leaf must admit at least one compatible compiled fragment.
+
+\subsection{Alignment Selects a Compatible Compiled Fragment}
+
+For every scalar node $u$ in the expression graph, write
+\[
+ \mathcal F_u=\{(S_r,a_r,\Pi_r)\}_{r=1}^{R_u}
+\]
+for the certified-faithful family produced by Appendix~\ref{app:guard-rules}, and write $\mathcal H_u$ for the finite set of comparison hyperplanes introduced in that compilation. By construction,
+\[
+ \mathcal H^\star=\mathcal H_{u_g}.
+\]
+
+\paragraph{Lemma D.5 (aligned-fragment lemma).}
+Let $u$ be any scalar node in the allowed CPWL expression graph. If $v$ is a nonempty leaf aligned with $\mathcal H_u$, then some fragment in $\mathcal F_u$ is compatible with $v$.
+
+\paragraph{Proof.}
+We argue by induction over the topological compilation of $u$.
+
+\emph{Atomic nodes.}
+If $u$ is an input coordinate or a constant, then $\mathcal F_u$ consists of a single fragment with empty guard set. The empty guard set is compatible with every leaf.
+
+\emph{Rule A: affine propagation.}
+Suppose
+\[
+ u(x)=\alpha\phi(x)+\beta.
+\]
+Rule~A introduces no new literals, so
+\[
+ \mathcal H_u=\mathcal H_\phi.
+\]
+By the induction hypothesis, some child fragment $(S,a,\Pi)\in\mathcal F_\phi$ is compatible with $v$. Rule~A outputs the fragment
+\[
+ (S,\alpha a+\beta,\Pi^{\mathrm A})
+\]
+on the same guard set $S$, which is therefore also compatible with $v$.
+
+\emph{Rule R: addition.}
+Suppose
+\[
+ u(x)=\phi_1(x)+\phi_2(x).
+\]
+Rule~R introduces no new comparison hyperplanes, so
+\[
+ \mathcal H_u=\mathcal H_{\phi_1}\cup \mathcal H_{\phi_2}.
+\]
+Because $v$ is aligned with $\mathcal H_u$, it is aligned with both child hyperplane families. By induction there exist compatible child fragments
+\[
+ (S_i,a_i,\Pi_i)\in\mathcal F_{\phi_1},
+ \qquad
+ (T_j,b_j,\Theta_j)\in\mathcal F_{\phi_2}.
+\]
+Every literal in $S_i\cup T_j$ is therefore compatible with $v$, so the common-refinement output fragment
+\[
+ (S_i\cup T_j,\ a_i+b_j,\ \Pi^{\mathrm R}_{ij})
+\]
+is compatible with $v$.
+
+\emph{Rule G: scalar gating.}
+Suppose
+\[
+ u=\sigma(\phi)
+\]
+for one of the scalar gates allowed in Section~\ref{sec:guard-exactification}. By induction there exists a compatible child fragment
+\[
+ (S,a,\Pi)\in\mathcal F_\phi.
+\]
+Let $b_1(a)$, $b_2(a)$, and $d(a)=b_1(a)-b_2(a)$ be the two affine branch tags and the affine winner comparison used by Rule~G in Appendix~\ref{app:guard-rules}. If $d(a)$ is constant, Rule~G outputs a single fragment on the unchanged guard set $S$, which remains compatible with $v$.
+
+Assume now that $d(a)$ is nonconstant. Then the comparison hyperplane
+\[
+ d(a)(x)=0
+\]
+belongs to $\mathcal H_u$. Since $v$ is aligned with $\mathcal H_u$, the verifier accepts at least one of
+\[
+ D_v\subseteq\{d(a)\le 0\},
+ \qquad
+ D_v\subseteq\{d(a)\ge 0\}.
+\]
+If the second holds, then the first Rule~G branch fragment
+\[
+ (S\cup\{d(a)\ge 0\},\ b_1(a),\ \Pi^{\mathrm G,1})
+\]
+is compatible with $v$. If the first holds, then the second Rule~G branch fragment
+\[
+ (S\cup\{d(a)\le 0\},\ b_2(a),\ \Pi^{\mathrm G,2})
+\]
+is compatible with $v$. If both hold, then $D_v\subseteq\{d(a)=0\}$ and the two affine branch tags agree on the whole leaf, so either branch fragment may be chosen. Thus some Rule~G output fragment is compatible with $v$.
+
+\emph{Rule M: finite max.}
+Suppose
+\[
+ u(x)=\max_{1\le i\le k}\phi_i(x).
+\]
+For each child $\phi_i$, the induction hypothesis yields a fragment
+\[
+ (S_{i,r_i},a_i,\Pi_i)\in\mathcal F_{\phi_i}
+\]
+compatible with $v$. Hence the common-refinement guard set
+\[
+ S_{\mathbf r}:=\bigcup_{i=1}^k S_{i,r_i}
+\]
+is compatible with $v$.
+
+We now choose a compatible winner. For every pair $(i,j)$, define the affine difference
+\[
+ d_{ij}(x):=a_i(x)-a_j(x).
+\]
+If $d_{ij}$ is constant, then its sign is globally fixed. If $d_{ij}$ is nonconstant, then the hyperplane $d_{ij}=0$ belongs to $\mathcal H_u$, so alignment of $v$ forces at least one of
+\[
+ D_v\subseteq\{d_{ij}\le 0\},
+ \qquad
+ D_v\subseteq\{d_{ij}\ge 0\}
+\]
+to be verifier-accepted. Thus every pairwise comparison between the affine competitors is fixed on the whole leaf.
+
+Define a preorder on $\{1,\dots,k\}$ by
+\[
+ i\preceq_v j
+ \iff
+ D_v\subseteq\{a_i\le a_j\}.
+\]
+Because every pairwise comparison is fixed leafwise, this is a total preorder on a finite set. Let $p$ be any maximal element. For a total preorder, maximality implies
+\[
+ q\preceq_v p
+ \qquad \forall q\in\{1,\dots,k\},
+\]
+since otherwise totality would force $p\prec_v q$, contradicting maximality.
+
+We claim that the Rule~M candidate $p$ survives and is compatible with $v$.
+\begin{itemize}
+    \item If for some $q\neq p$ the comparison $d_{pq}$ were a negative constant, then $a_p<a_q$ everywhere, so $q\not\preceq_v p$, contradicting the displayed property.
+    \item If $d_{pq}$ is a nonnegative constant, Rule~M adds no new winner literal, so compatibility is automatic.
+    \item If $d_{pq}$ is nonconstant, the displayed property gives
+    \[
+    D_v\subseteq\{a_q\le a_p\}=\{d_{pq}\ge 0\},
+    \]
+    so the required winner literal $d_{pq}\ge 0$ is compatible with $v$.
+\end{itemize}
+Therefore every winner constraint required for candidate $p$ is accepted on the whole leaf. The output fragment
+\[
+ \bigl(S_{\mathbf r}\cup S(\mathcal C_{p,\mathbf r}),\ a_p,\ \Pi^{\mathrm M}_{p,\mathbf r}\bigr)
+\]
+is compatible with $v$.
+
+This completes the induction. Every nonempty leaf aligned with $\mathcal H_u$ admits at least one compatible fragment in $\mathcal F_u$. \qed
+
+The content of the lemma is exactly the structural claim used in the main text: alignment does not invent a new affine model. It selects one of the finitely many already certified compiled fragments whose guard conditions are valid on the whole leaf.
+
+\subsection{Exact Leaves and Their Local Optimization}
+
+Once a compatible fragment has been selected on a nonempty aligned leaf, exactification follows by restriction.
+
+\paragraph{Theorem D.6 (exact leaf theorem).}
+Let $T$ be a split tree aligned with $\mathcal H^\star$, and let $v\in\operatorname{Leaves}(T)$ satisfy $D_v\neq\varnothing$. Then there exist an affine function $a_v$ and a verifier-accepted exact payload
+\[
+ \pi_v^{=}
+\]
+such that
+\[
+ g(x)=a_v(x)
+ \qquad \forall x\in D_v.
+\tag{D.2}
+\]
+Equivalently, every nonempty aligned leaf is an exact certified cell in the guard language.
+
+\paragraph{Proof.}
+Apply Lemma~D.5 to the output node $u_g$. Since $v$ is aligned with $\mathcal H^\star=\mathcal H_{u_g}$ and nonempty, some compiled output fragment
+\[
+ (S,a,\Pi)\in\mathcal F_g
+\]
+is compatible with $v$. By Definition~D.4, the verifier accepts a finite containment proof
+\[
+ \rho_{v\subseteq S}: D_v\subseteq D_S.
+\]
+Appendix~\ref{app:guard-rules} already established the restriction rule for accepted exact payloads. Therefore the fragment payload $\Pi$, which is accepted as a proof of
+\[
+ g(x)=a(x)
+ \qquad \forall x\in D_S,
+\]
+may be restricted along the accepted containment. Define
+\[
+ a_v:=a,
+ \qquad
+ \pi_v^{=}:=\mathrm{Restr}(D_v\subseteq D_S;\Pi).
+\]
+Then the verifier accepts
+\[
+ g(x)=a_v(x)
+ \qquad \forall x\in D_v,
+\]
+which is exactly the required exact leaf statement. \qed
+
+\paragraph{Corollary D.7 (exact leaf optimization).}
+Under the assumptions of Theorem~D.6, \textsc{AffOpt} applied to $a_v$ over the verifier-facing leaf description $\eta_v$ returns a certificate of
+\[
+ \mu_v:=\inf_{x\in D_v} a_v(x).
+\]
+Because $D_v$ is nonempty and compact, this infimum is attained at some point $x_v^\star\in D_v$, and the verifier can therefore accept the full exact leaf certificate
+\[
+ \mathrm{Exact}(v;a_v,\mu_v,x_v^\star,\pi_v^{=},\pi_v^{\mathrm{opt}}).
+\]
+Moreover,
+\[
+ \mu_v=\inf_{x\in D_v}g(x)=\min_{x\in D_v}g(x).
+\tag{D.3}
+\]
+
+\paragraph{Proof.}
+The equality payload from Theorem~D.6 gives
+\[
+ g=a_v
+ \qquad \text{on }D_v.
+\]
+Since $a_v$ is affine and $D_v$ is nonempty compact, \textsc{AffOpt} returns an attained optimum of $a_v$ on $D_v$. Combining the optimizer payload with the exact leaf payload yields the displayed equality for the true function $g$. \qed
+
+Thus any aligned split tree can be turned into an exact leaf table after empty leaves have been discharged by infeasibility. What remains is to turn that leaf table into an \emph{accepted cover} in the formal sense of Appendix~\ref{app:cell-payload-syntax}.
+
+\subsection{Explicit Global Cover Payload from a Split Tree}
+
+The exact leaves already provide the local exact cells. To obtain an accepted exact certified cover object, we still need a finite global cover derivation. Appendix~\ref{app:cell-payload-syntax} fixed the relevant grammar: cover sequents, direct local-cover atoms, composition, and empty-target elimination. We now instantiate that grammar for split trees.
+
+For a node $v$ of $T$, write
+\[
+ \operatorname{Leaves}(v)
+\]
+for the descendant leaves of the subtree rooted at $v$, and define the target family
+\[
+ \Gamma_v:=\{\eta_w:\ w\in \operatorname{Leaves}(v)\}.
+\]
+
+\paragraph{Definition D.8 (split-local cover atom).}
+Let $v$ be an internal node split on $h_v=0$, with children $v^-$ and $v^+$. The associated \emph{split-local cover payload} is the finite object
+\[
+ \rho_v^{\mathrm{split}}
+\]
+that \textsc{Check} accepts as a proof of the direct local-cover sequent
+\[
+ \eta_v \rightsquigarrow \{\eta_{v^-},\eta_{v^+}\}.
+\tag{D.4}
+\]
+Concretely, $\rho_v^{\mathrm{split}}$ records the parent guard set $S(v)$, the split hyperplane $h_v$, and the two child guard sets
+\[
+ S(v^-) = S(v)\cup\{h_v\le 0\},
+ \qquad
+ S(v^+) = S(v)\cup\{h_v\ge 0\}.
+\]
+The verifier checks only finite syntax:
+\begin{enumerate}
+    \item the child descriptions are exactly the parent description extended by the two closed-halfspace literals;
+    \item the corresponding semantic claim is
+    \[
+    D_{S(v)}\subseteq D_{S(v^-) }\cup D_{S(v^+)},
+    \]
+    which holds because the two closed halfspaces $\{h_v\le 0\}$ and $\{h_v\ge 0\}$ cover the ambient space.
+\end{enumerate}
+Thus $\rho_v^{\mathrm{split}}$ is a valid direct local-cover atom in the grammar of Appendix~\ref{app:cell-payload-syntax}.
+
+\paragraph{Lemma D.9 (global cover payload from a split tree).}
+Let $T$ be any finite split tree.
+\begin{enumerate}
+    \item For every node $v$ of $T$, there exists a finite cover derivation
+    \[
+    \Pi_v^{\mathrm{cov}}
+    \]
+    concluding the sequent
+    \[
+    \eta_v\rightsquigarrow \Gamma_v.
+    \tag{D.5}
+    \]
+    In particular, for the root $r$ one obtains a finite global cover payload
+    \[
+    \Pi_T^{\mathrm{cov}}
+    \]
+    concluding
+    \[
+    \top_D\rightsquigarrow \Gamma_r
+    =
+    \{\eta_v:\ v\in \operatorname{Leaves}(T)\}.
+    \tag{D.6}
+    \]
+    \item If a subset $E\subseteq \operatorname{Leaves}(T)$ is certified empty by \textsc{Feas}, then repeated empty-target elimination yields another finite cover derivation
+    \[
+    \Pi_{T,\mathrm{live}}^{\mathrm{cov}}
+    \]
+    concluding
+    \[
+    \top_D\rightsquigarrow \{\eta_v:\ v\in \operatorname{Leaves}(T)\setminus E\}.
+    \tag{D.7}
+    \]
+\end{enumerate}
+Hence any split tree, together with finite infeasibility certificates for its empty leaves, canonically yields a finite accepted global cover payload over its live leaves.
+
+\paragraph{Proof.}
+For the first statement we argue by induction on the subtree rooted at $v$.
+
+\emph{Base case: $v$ is a leaf.}
+Then $\Gamma_v=\{\eta_v\}$. The verifier accepts the reflexive containment proof
+\[
+ \rho_v^{\mathrm{id}}: C(\eta_v)\subseteq C(\eta_v),
+\]
+so by the containment atom of Appendix~\ref{app:cell-payload-syntax} we obtain the sequent
+\[
+ \eta_v\rightsquigarrow \{\eta_v\}.
+\]
+This is the required derivation $\Pi_v^{\mathrm{cov}}$.
+
+\emph{Induction step: $v$ is internal.}
+Let $v^-$ and $v^+$ denote its two children. By Definition~D.8, the verifier accepts the split-local cover atom
+\[
+ \eta_v\rightsquigarrow \{\eta_{v^-},\eta_{v^+}\}.
+\]
+By the induction hypothesis, there exist finite derivations
+\[
+ \Pi_{v^-}^{\mathrm{cov}}:
+ \eta_{v^-}\rightsquigarrow \Gamma_{v^-},
+ \qquad
+ \Pi_{v^+}^{\mathrm{cov}}:
+ \eta_{v^+}\rightsquigarrow \Gamma_{v^+}.
+\]
+Applying the composition rule from Appendix~\ref{app:cell-payload-syntax} yields a finite derivation
+\[
+ \Pi_v^{\mathrm{cov}}:
+ \eta_v\rightsquigarrow \Gamma_{v^-}\cup \Gamma_{v^+}.
+\]
+But
+\[
+ \Gamma_{v^-}\cup \Gamma_{v^+}=\Gamma_v,
+\]
+so this proves (D.5).
+
+Applying the construction to the root $r$ gives (D.6), since $\eta_r=\top_D$.
+
+For the second statement, let $E$ be the set of leaves whose descriptions are certified empty. Starting from the derivation (D.6), apply the empty-target elimination rule once for each $v\in E$. Because the target family is finite, only finitely many elimination steps are needed. Each step removes one empty target description without changing the semantic union. The resulting derivation is exactly (D.7). \qed
+
+This is the missing formal closure step: split trees do not merely induce a semantic leaf cover. They induce a finite \emph{accepted} global cover derivation in the grammar already fixed in Appendix~\ref{app:cell-payload-syntax}.
+
+\subsection{Finite Fully Aligned Trees and Accepted Finite Exactification}
+
+We now prove that the alignment hypothesis itself can always be realized finitely because the comparison family $\mathcal H^\star$ is finite.
+
+\paragraph{Theorem D.10 (finite fully aligned tree exists).}
+Let
+\[
+ \mathcal H^\star=\{h_1,\dots,h_M\}
+\]
+be the finite comparison-hyperplane family extracted from the static compilation of the output node. Then there exists a finite split tree $T^\star$ aligned with $\mathcal H^\star$.
+
+\paragraph{Proof.}
+Start from the root leaf with empty guard set. Process the hyperplanes in $\mathcal H^\star$ one by one. At stage $m$, split every current leaf on the two literals
+\[
+ h_m\le 0,
+ \qquad
+ h_m\ge 0.
+\]
+After $M$ rounds this yields a finite binary split tree $T^\star$.
+
+Every final leaf contains, in its path guard set, one explicit side literal for each hyperplane $h_m$. Therefore for every leaf $v$ and every $m$ the verifier certainly accepts at least one of
+\[
+ D_v\subseteq\{h_m\le 0\},
+ \qquad
+ D_v\subseteq\{h_m\ge 0\}.
+\]
+Thus every leaf is aligned with every hyperplane in $\mathcal H^\star$, so $T^\star$ is aligned with $\mathcal H^\star$. \qed
+
+The finiteness of exactification now follows by combining the aligned-fragment lemma, the exact leaf theorem, and the explicit split-tree cover derivation.
+
+\paragraph{Theorem D.11 (finite exactification theorem).}
+Let $g$ be the output of an allowed CPWL expression graph over nonempty compact domain $D$, and let $\mathcal H^\star$ be the finite comparison-hyperplane family extracted from static compilation. If $T$ is any split tree aligned with $\mathcal H^\star$, then its live leaves
+\[
+ \operatorname{Live}(T):=\{v\in \operatorname{Leaves}(T): D_v\neq\varnothing\}
+\]
+carry an accepted exact certified cover object
+\[
+ \mathbf C_T^{=}
+ :=
+ \Bigl(
+ \{(\eta_v,a_v,\pi_v^{=})\}_{v\in \operatorname{Live}(T)},
+ \Pi_{T,\mathrm{live}}^{\mathrm{cov}}
+ \Bigr)
+\]
+in the guard language. Consequently,
+\[
+ \mathrm{VAC}^{=}_{\mathfrak L_{\mathrm{grd}}}(g;D)
+ \le
+ |\operatorname{Live}(T)|.
+\tag{D.8}
+\]
+In particular, since a finite aligned tree exists by Theorem~D.10,
+\[
+ \mathrm{VAC}^{=}_{\mathfrak L_{\mathrm{grd}}}(g;D)<+\infty.
+\tag{D.9}
+\]
+
+\paragraph{Proof.}
+For each live leaf $v\in \operatorname{Live}(T)$, Theorem~D.6 supplies an affine function $a_v$ and an accepted exact payload $\pi_v^{=}$ proving
+\[
+ g(x)=a_v(x)
+ \qquad \forall x\in D_v=C(\eta_v).
+\]
+Thus each live leaf defines an accepted exact certified cell
+\[
+ (\eta_v,a_v,\pi_v^{=}).
+\]
+
+For each empty leaf $v\notin \operatorname{Live}(T)$, \textsc{Feas} provides a finite infeasibility certificate for $C(\eta_v)=D_v=\varnothing$. Lemma~D.9 then yields a finite global cover payload
+\[
+ \Pi_{T,\mathrm{live}}^{\mathrm{cov}}
+\]
+concluding
+\[
+ \top_D\rightsquigarrow \{\eta_v:\ v\in \operatorname{Live}(T)\}.
+\]
+By the definitions in Appendix~\ref{app:cell-payload-syntax}, the pair of this global payload with the listed live-leaf exact cells is an accepted exact certified cover object. Its size is exactly $|\operatorname{Live}(T)|$, so by minimality of VAC we obtain (D.8).
+
+Taking $T=T^\star$ from Theorem~D.10 yields a finite accepted exact certified cover, which proves (D.9). \qed
+
+\paragraph{Corollary D.12 (exact leaf table and global optimum).}
+Let $T$ be any split tree aligned with $\mathcal H^\star$. For each live leaf $v$, let
+\[
+ \mu_v:=\inf_{x\in D_v} a_v(x).
+\]
+Because $D\neq\varnothing$ and Proposition~D.2 shows that the leaves of $T$ cover $D$, the live-leaf set $\operatorname{Live}(T)$ is nonempty. Then
+\[
+ \inf_{x\in D}g(x)
+ =
+ \min_{v\in \operatorname{Live}(T)} \mu_v.
+\tag{D.10}
+\]
+If $T=T^\star$ is the finite aligned tree from Theorem~D.10, then the right-hand side is finite and attained leafwise.
+
+\paragraph{Proof.}
+By Theorem~D.11, the live leaves form an accepted exact certified cover of $D$. Since $D\neq\varnothing$, at least one live leaf must remain after empty-leaf elimination. The basic soundness contract from Section~\ref{sec:verifier-model} therefore reduces the global infimum of $g$ to the minimum of the local affine infima over the listed exact cells. Those local affine infima are precisely the $\mu_v$. \qed
+
+\paragraph{Corollary D.13 (naive leaf-count bound).}
+If $|\mathcal H^\star|=M$, then the tree $T^\star$ from Theorem~D.10 may be chosen with depth at most $M$ and therefore with at most
+\[
+ 2^M
+\]
+leaves. Hence the construction proves finiteness, not optimality.
+
+\paragraph{Proof.}
+The tree construction splits once on each of the $M$ hyperplanes, so its depth is at most $M$. A binary tree of depth $M$ has at most $2^M$ leaves. Theorem~D.11 shows only that this explicit aligned tree yields one accepted exact certified cover. VAC may still be strictly smaller because different live leaves can later be merged, omitted, or replaced by a smaller verifier-accepted exact cover. \qed
+
+This appendix is therefore the exact formal bridge from local CPWL compilation to accepted exact certified covers. Appendix~\ref{app:guard-rules} proved that the network admits finitely many verifier-accepted guard-affine fragments. The present appendix proved that full alignment with their finite comparison geometry turns those fragments into exact leaves, and that the split tree itself contributes the finite global cover payload required by the cover grammar. That is the closure used in the main text whenever exactification is invoked as an accepted cover theorem rather than merely as a semantic decomposition.

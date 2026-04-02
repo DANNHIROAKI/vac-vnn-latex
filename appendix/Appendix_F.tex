@@ -1,0 +1,400 @@
+\section{Additional Proofs for Upper and Lower Bounds}
+\label{app:vac-bounds}
+
+This appendix expands Section~\ref{sec:vac-bounds}. The main text states the quantitative theorem package in its cleanest form. Here we record the full semantic proofs behind that package.
+
+There are four ingredients.
+\begin{enumerate}
+    \item We show that the aligned exactification cover built in Appendix~\ref{app:exactification} is already an \emph{accepted} exact certified cover, so it immediately yields an exact-side upper bound.
+    \item We prove the exact-to-threshold transfer formally by converting each nonempty exact certified cell into a threshold certified cell using one additional affine-optimization payload.
+    \item We give the complete incompatibility-graph lower-bound argument: every threshold cell induces an independent set, independent-set coverings are the same as graph colorings, and therefore threshold VAC is bounded below by the chromatic number.
+    \item We isolate the technical boundary cases, especially the two-sided statement that false threshold claims force
+    \[
+    \mathrm{VAC}^{\ge}=+\infty,
+    \]
+    while true threshold claims yield finite threshold covers only in languages that are expressive enough to admit them.
+\end{enumerate}
+
+Throughout, $\mathfrak L$ denotes an arbitrary verifier-facing cell language in the sense of Section~\ref{sec:verifier-model}, and $\mathfrak L_{\mathrm{grd}}$ denotes the guard language specialized in Section~\ref{sec:guard-exactification}. All exact and threshold certified cells, all accepted global cover payloads, and all soundness contracts are understood in the formal sense of Appendix~\ref{app:cell-payload-syntax}.
+
+\subsection{Exact-Side Upper Bounds from Accepted Exactification Covers}
+
+We begin with the exact side. By Appendix~\ref{app:exactification}, aligned split trees yield not only semantic exact leaves but also a finite global cover derivation in the accepted cover grammar.
+
+Fix an allowed CPWL expression graph over nonempty compact domain $D$, let $g$ be its output, and let
+\[
+\mathcal H^\star
+\]
+be the finite comparison-hyperplane family extracted by the static compilation in Appendix~\ref{app:guard-rules}. If $T$ is any split tree aligned with $\mathcal H^\star$, write
+\[
+\operatorname{Live}(T)
+:=
+\{v\in\operatorname{Leaves}(T): D_v\neq\varnothing\}.
+\]
+
+\paragraph{Proposition F.1 (aligned exactification yields an accepted exact cover).}
+Let $T$ be any split tree aligned with $\mathcal H^\star$. Then the family
+\[
+\mathcal C_T^{=}
+:=
+\Bigl\{\bigl(S(v),a_v,\pi_v^{=}\bigr): v\in\operatorname{Live}(T)\Bigr\}
+\]
+together with the split-tree global payload from Appendix~\ref{app:exactification} is an accepted exact certified cover of $D$ in the guard language $\mathfrak L_{\mathrm{grd}}$.
+
+\paragraph{Proof.}
+Appendix~\ref{app:exactification} proves exactly the three ingredients required by the cover definition from Appendix~\ref{app:cell-payload-syntax}.
+\begin{enumerate}
+    \item By Theorem~D.6 and Corollary~D.7, every nonempty aligned leaf $v$ carries an accepted exact certified cell
+    \[
+    \bigl(S(v),a_v,\pi_v^{=}\bigr)
+    \]
+    in the guard language.
+    \item By Lemma~D.9, the split tree itself contributes a finite global cover payload proving that all leaf domains together cover $D$.
+    \item By the empty-leaf elimination step in Theorem~D.11, empty leaves may be removed from the target family without changing the accepted cover statement.
+\end{enumerate}
+After deleting the empty leaves, the remaining listed cells are precisely the live leaves, and the same accepted global cover derivation witnesses
+\[
+D\subseteq \bigcup_{v\in\operatorname{Live}(T)} D_{S(v)}.
+\]
+By the formal definitions in Appendix~\ref{app:cell-payload-syntax}, this is exactly an accepted exact certified cover. \qed
+
+\paragraph{Corollary F.2 (exact-side upper bound from aligned exactification).}
+For every split tree $T$ aligned with $\mathcal H^\star$,
+\[
+\mathrm{VAC}^{=}_{\mathfrak L_{\mathrm{grd}}}(g;D)
+\le
+|\operatorname{Live}(T)|.
+\]
+In particular,
+\[
+\mathrm{VAC}^{=}_{\mathfrak L_{\mathrm{grd}}}(g;D)<+\infty.
+\]
+
+\paragraph{Proof.}
+Proposition~F.1 gives one accepted exact certified cover with exactly $|\operatorname{Live}(T)|$ listed cells. VAC is the minimum size of an accepted exact certified cover, so it cannot exceed the size of this particular one. Finiteness follows because Appendix~\ref{app:exactification} also proves the existence of a finite fully aligned split tree. \qed
+
+\paragraph{Corollary F.3 (naive exact-side count bound).}
+If $M:=|\mathcal H^\star|$, then there exists an aligned split tree $T^\star$ such that
+\[
+\mathrm{VAC}^{=}_{\mathfrak L_{\mathrm{grd}}}(g;D)
+\le
+|\operatorname{Live}(T^\star)|
+\le
+2^M.
+\]
+
+\paragraph{Proof.}
+Appendix~\ref{app:exactification}, Corollary~D.13, constructs a fully aligned split tree whose total number of leaves is at most $2^M$. Every live leaf is one of those leaves, so
+\[
+|\operatorname{Live}(T^\star)|\le 2^M.
+\]
+Combining this with Corollary~F.2 yields the claim. \qed
+
+The point of Corollaries~F.2--F.3 is structural existence, not optimality. The aligned exactification tree supplies \emph{one} accepted exact cover. VAC measures the smallest accepted exact cover, which may be strictly smaller if several exact leaves can be merged into one verifier-accepted exact cell.
+
+\subsection{Exact-to-Threshold Transfer in Full Detail}
+
+We now formalize the transfer from exact certified covers to threshold certified covers.
+
+\paragraph{Lemma F.4 (local threshold conversion from a nonempty exact cell).}
+Let
+\[
+\mathfrak c=(\gamma,a,\pi^{=})
+\]
+be an accepted exact certified cell in a verifier-facing language $\mathfrak L$, and assume that $C(\gamma)$ is nonempty. If
+\[
+\inf_{x\in C(\gamma)} g(x)\ge t,
+\]
+then there exists a finite threshold payload $\pi^{\ge}_{\gamma,t}$ such that
+\[
+(\gamma,\pi^{\ge}_{\gamma,t})
+\]
+is an accepted threshold certified cell for threshold $t$.
+
+\paragraph{Proof.}
+Because $\mathfrak c$ is an accepted exact certified cell, the verifier accepts the local equality statement
+\[
+g(x)=a(x)
+\qquad \forall x\in C(\gamma).
+\]
+By the trusted-interface contract from Appendix~\ref{app:trusted-substrate}, \textsc{AffOpt} can be invoked on the verifier-facing description $\mathfrak D(\gamma)$ and the affine function $a$. It returns a finite certificate proving the exact affine infimum
+\[
+\mu_\gamma
+:=
+\inf_{x\in C(\gamma)} a(x).
+\]
+The hypothesis
+\[
+\inf_{x\in C(\gamma)} g(x)\ge t
+\]
+and the accepted exact equality imply
+\[
+\mu_\gamma
+=
+\inf_{x\in C(\gamma)} a(x)
+=
+\inf_{x\in C(\gamma)} g(x)
+\ge t.
+\]
+Therefore the concatenation of:
+\begin{enumerate}
+    \item the already accepted exact local payload $\pi^{=}$,
+    \item the new affine-optimization certificate for $\mu_\gamma$, and
+    \item the finite scalar check $\mu_\gamma\ge t$
+\end{enumerate}
+forms a finite threshold payload proving
+\[
+g(x)\ge t
+\qquad \forall x\in C(\gamma).
+\]
+This is precisely an accepted threshold certified cell. No optimizer witness or attainment claim is needed for this conversion. \qed
+
+\paragraph{Proposition F.5 (exact-to-threshold transfer).}
+Fix any verifier-facing language $\mathfrak L$ and threshold $t\in\mathbb R$. Assume
+\[
+\inf_{x\in D} g(x)\ge t.
+\]
+If
+\[
+\mathcal C^{=}
+=
+\{(\gamma_i,a_i,\pi_i^{=})\}_{i=1}^N
+\]
+is an accepted exact certified cover of $(g,D)$, then there exists an accepted threshold certified cover of $(g,D,t)$ with at most $N$ cells. Consequently,
+\[
+\mathrm{VAC}^{\ge}_{\mathfrak L}(g;D,t)
+\le
+\mathrm{VAC}^{=}_{\mathfrak L}(g;D).
+\]
+
+\paragraph{Proof.}
+Appendix~\ref{app:cell-payload-syntax} shows that empty listed cells may be removed from an accepted cover without changing the cover statement. Hence we may first discard every exact cell with empty semantic domain and obtain an accepted exact certified cover
+\[
+\widetilde{\mathcal C}^{=}
+=
+\{(\gamma_i,a_i,\pi_i^{=})\}_{i=1}^{N'}
+\]
+with $N'\le N$ and all $C(\gamma_i)$ nonempty.
+
+Now fix one cell of $\widetilde{\mathcal C}^{=}$. Since
+\[
+C(\gamma_i)\subseteq D
+\]
+and the global hypothesis gives
+\[
+\inf_{x\in D}g(x)\ge t,
+\]
+we also have
+\[
+\inf_{x\in C(\gamma_i)}g(x)\ge t.
+\]
+Lemma~F.4 therefore converts each nonempty exact cell
+\[
+(\gamma_i,a_i,\pi_i^{=})
+\]
+into an accepted threshold certified cell
+\[
+(\gamma_i,\pi_{i,t}^{\ge}).
+\]
+The global cover payload is unchanged, because the semantic cell descriptions $\gamma_i$ themselves are unchanged. This conversion uses only the local exact equalities, the cellwise infimum certificates returned by \textsc{AffOpt}, and the scalar checks $\mu_{\gamma_i}\ge t$; it does not require compactness or optimizer attainment. Thus the converted family
+\[
+\widetilde{\mathcal C}^{\ge}
+:=
+\{(\gamma_i,\pi_{i,t}^{\ge})\}_{i=1}^{N'}
+\]
+forms an accepted threshold certified cover of size $N'\le N$. Minimizing over exact certified covers gives the VAC inequality. \qed
+
+\paragraph{Corollary F.6 (guard-language threshold finiteness under a true threshold claim).}
+Let $g$ be the output of an allowed CPWL expression graph over nonempty compact domain $D$, and let $T$ be any split tree aligned with $\mathcal H^\star$. If
+\[
+\inf_{x\in D}g(x)\ge t,
+\]
+then
+\[
+\mathrm{VAC}^{\ge}_{\mathfrak L_{\mathrm{grd}}}(g;D,t)
+\le
+\mathrm{VAC}^{=}_{\mathfrak L_{\mathrm{grd}}}(g;D)
+\le
+|\operatorname{Live}(T)|.
+\]
+
+\paragraph{Proof.}
+The second inequality is Corollary~F.2. The first is Proposition~F.5 applied to the exact certified cover supplied by Proposition~F.1. \qed
+
+\subsection{Incompatibility-Graph Lower Bounds}
+
+We now turn to the lower-bound side. Fix again a verifier-facing language $\mathfrak L$ and threshold $t$. For a finite witness set
+\[
+X=\{x_1,\dots,x_m\}\subseteq D,
+\]
+let
+\[
+G_t^{\mathrm{inc}}(X)
+\]
+be the threshold incompatibility graph defined in Section~\ref{sec:vac-bounds}.
+
+\paragraph{Lemma F.7 (every threshold cell induces an independent set).}
+Let
+\[
+(\gamma,\pi^{\ge})
+\]
+be any accepted threshold certified cell. Then the vertex subset
+\[
+X\cap C(\gamma)
+\]
+is an independent set of $G_t^{\mathrm{inc}}(X)$.
+
+\paragraph{Proof.}
+Suppose two vertices $x_i,x_j\in X\cap C(\gamma)$ were adjacent in $G_t^{\mathrm{inc}}(X)$. By definition of the incompatibility graph, this would mean that $x_i$ and $x_j$ are threshold-incompatible: no single accepted threshold certified cell can contain them both. But the cell $(\gamma,\pi^{\ge})$ does contain them both, since both belong to $C(\gamma)$. This contradiction shows that no adjacent pair can occur inside $X\cap C(\gamma)$, so that subset is independent. \qed
+
+\paragraph{Lemma F.8 (independent-set cover number equals chromatic number).}
+For every finite graph $G=(V,E)$, the minimum number of independent sets whose union covers $V$ equals $\chi(G)$.
+
+\paragraph{Proof.}
+Any proper coloring of $G$ with $k$ colors partitions $V$ into $k$ color classes, and each color class is an independent set. Therefore the minimum number of independent sets needed to cover $V$ is at most $\chi(G)$.
+
+Conversely, suppose
+\[
+V\subseteq I_1\cup\cdots\cup I_k
+\]
+where each $I_j$ is an independent set. Assign to each vertex $v\in V$ the smallest index $j$ such that $v\in I_j$. If two adjacent vertices received the same color $j$, then both would lie in the independent set $I_j$, which is impossible. Hence this assignment is a proper $k$-coloring of $G$, so
+\[
+\chi(G)\le k.
+\]
+Taking the minimum over all independent-set covers gives equality. \qed
+
+\paragraph{Theorem F.9 (chromatic-number lower bound).}
+For every finite witness set $X\subseteq D$,
+\[
+\mathrm{VAC}^{\ge}_{\mathfrak L}(g;D,t)
+\ge
+\chi\bigl(G_t^{\mathrm{inc}}(X)\bigr).
+\]
+
+\paragraph{Proof.}
+Take any accepted threshold certified cover
+\[
+\mathcal C^{\ge}
+=
+\{(\gamma_i,\pi_i^{\ge})\}_{i=1}^N.
+\]
+For each listed cell define
+\[
+I_i:=X\cap C(\gamma_i).
+\]
+By Lemma~F.7, every $I_i$ is an independent set of $G_t^{\mathrm{inc}}(X)$. Because the cover is global,
+\[
+D\subseteq \bigcup_{i=1}^N C(\gamma_i),
+\]
+so in particular every vertex of $X$ belongs to at least one $I_i$. Thus
+\[
+X\subseteq \bigcup_{i=1}^N I_i,
+\]
+meaning that the vertex set of the incompatibility graph is covered by $N$ independent sets. By Lemma~F.8, this implies
+\[
+N\ge \chi\bigl(G_t^{\mathrm{inc}}(X)\bigr).
+\]
+Since the argument applies to every accepted threshold certified cover, the minimum cover size satisfies the same inequality. \qed
+
+\paragraph{Corollary F.10 (clique lower bound).}
+For every finite witness set $X\subseteq D$,
+\[
+\mathrm{VAC}^{\ge}_{\mathfrak L}(g;D,t)
+\ge
+\omega\bigl(G_t^{\mathrm{inc}}(X)\bigr),
+\]
+where $\omega$ denotes clique number.
+
+\paragraph{Proof.}
+Every finite graph satisfies
+\[
+\chi(G)\ge \omega(G).
+\]
+Applying this to Theorem~F.9 gives the claim. \qed
+
+\paragraph{Corollary F.11 (pairwise incompatibility).}
+If there exist points $x_1,\dots,x_m\in D$ that are pairwise threshold-incompatible, then
+\[
+\mathrm{VAC}^{\ge}_{\mathfrak L}(g;D,t)\ge m.
+\]
+
+\paragraph{Proof.}
+The corresponding incompatibility graph contains a clique on those $m$ vertices, so Corollary~F.10 applies. \qed
+
+\subsection{Technical Boundary Cases and When Threshold VAC Is Infinite}
+
+The upper- and lower-bound theorems above sit on a simple but important semantic boundary. Exact-side finiteness is a structural theorem for the CPWL class considered here. Threshold-side finiteness is not structural in the same unconditional sense: it is constrained first by the truth of the threshold claim and then by the expressive power of the chosen verifier-facing language.
+
+\paragraph{Proposition F.12 (false threshold claims force infinite threshold VAC).}
+If
+\[
+\inf_{x\in D} g(x)<t,
+\]
+then for every verifier-facing language $\mathfrak L$,
+\[
+\mathrm{VAC}^{\ge}_{\mathfrak L}(g;D,t)=+\infty.
+\]
+
+\paragraph{Proof.}
+Assume for contradiction that there exists a finite accepted threshold certified cover
+\[
+\mathcal C^{\ge}=
+\{(\gamma_i,\pi_i^{\ge})\}_{i=1}^N.
+\]
+By local threshold soundness, every accepted listed cell satisfies
+\[
+g(x)\ge t
+\qquad \forall x\in C(\gamma_i).
+\]
+Because the cover is global,
+\[
+D\subseteq \bigcup_{i=1}^N C(\gamma_i),
+\]
+it follows that
+\[
+g(x)\ge t
+\qquad \forall x\in D.
+\]
+Hence
+\[
+\inf_{x\in D}g(x)\ge t,
+\]
+contradicting the hypothesis. Therefore no finite threshold certified cover exists, and by definition threshold VAC is $+\infty$. \qed
+
+\paragraph{Remark F.13 (truth of the threshold claim alone does not force finiteness in an arbitrary language).}
+The converse to Proposition~F.12 is false in general. Even if
+\[
+\inf_{x\in D}g(x)\ge t,
+\]
+a very weak verifier-facing language may simply fail to admit any finite threshold certified cover. Thus the correct statement is not
+\[
+\inf_D g\ge t \iff \mathrm{VAC}^{\ge}_{\mathfrak L}(g;D,t)<+\infty
+\]
+for every $\mathfrak L$. Rather:
+\begin{itemize}
+    \item the implication
+    \[
+    \mathrm{VAC}^{\ge}_{\mathfrak L}(g;D,t)<+\infty
+    \Longrightarrow
+    \inf_D g\ge t
+    \]
+    always holds by Proposition~F.12;
+    \item the reverse implication requires an additional representability statement for the chosen language.
+\end{itemize}
+For the CPWL guard language studied in this paper, that representability statement is supplied by guard-certified exactification together with exact-to-threshold transfer.
+
+\paragraph{Remark F.14 (witness-set lower bounds are finite shadows of a possibly infinite cover problem).}
+For every finite witness set $X$, the chromatic lower bound of Theorem~F.9 is finite because $G_t^{\mathrm{inc}}(X)$ is a finite graph. When Proposition~F.12 applies, these finite graph bounds remain true but become only finite shadows of the full semantic obstruction:
+\[
+\chi\bigl(G_t^{\mathrm{inc}}(X)\bigr)
+\le
+\mathrm{VAC}^{\ge}_{\mathfrak L}(g;D,t)
+=
++\infty.
+\]
+This is why incompatibility graphs are best understood as verifier-aligned lower-bound templates, not as complete characterizations of threshold VAC.
+
+\paragraph{Remark F.15 (cell-complete proof languages inherit the same quantitative bounds).}
+Appendix~\ref{app:proof-language-dl} proves that, on either side, every $c$-cell-complete proof language realizes VAC up to the fixed realization constant $c$. Therefore every upper bound and lower bound in this appendix immediately transfers to minimum proof size in any such language, with only the syntax-dependent constant-factor change already isolated in Appendix~\ref{app:proof-language-dl}.
+
+This completes the full proof package behind Section~\ref{sec:vac-bounds}. The exact side is finite because aligned exactification already produces accepted exact covers; the threshold side can be obtained from the exact side when the threshold claim is true; and lower bounds arise from the purely semantic fact that one accepted threshold cell can certify only an independent set of witness points in the incompatibility graph.

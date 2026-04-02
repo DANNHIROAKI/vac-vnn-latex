@@ -1,0 +1,522 @@
+\section{Trusted Task Semantics and Snapshot Soundness}
+\label{app:trusted-substrate}
+
+Section~\ref{sec:verifier-model} deliberately keeps only the smallest semantic interface needed by the main theorem flow: the trusted kernel, local certified cells, certified covers, and the statements proved later for the CPWL class. This appendix restores the fuller task-level substrate that sits underneath that compressed presentation. Its purpose is not to introduce new structural results. Its role is to make precise what a partially completed verifier-visible proof state already means externally.
+
+At this level, the paper is about five objects:
+\begin{enumerate}
+    \item a minimal trusted interface, consisting only of the primitives the verifier may invoke directly;
+    \item leaf-level evidence objects, namely infeasibility certificates, affine lower-bound certificates, exact leaf certificates, and point witnesses;
+    \item \emph{snapshots}, which package a finite leaf cover together with all currently accepted evidence and therefore certify a global interval;
+    \item \emph{anytime refinement}, which explains why adding accepted evidence or refining leaves can only strengthen that certified interval; and
+    \item the \emph{finite exactification boundary}, which characterizes when a finite accepted snapshot already collapses to the true global optimum.
+\end{enumerate}
+
+This appendix is purely task-semantic. It does not assume a specific network architecture, search strategy, branch-and-bound trace, or proof language. Section~\ref{sec:guard-exactification} later shows that for the CPWL class studied in the paper, the finite exactification condition is in fact achieved.
+
+\subsection{Global Tasks, Leaf Covers, and the Trusted Interface}
+
+Fix a nonempty compact input domain
+\[
+D\subseteq \mathbb R^n
+\]
+and a target function
+\[
+g:D\to \mathbb R.
+\]
+At the task layer there are two equivalent views.
+
+\paragraph{Threshold tasks.}
+Given a threshold $t\in\mathbb R$, define the global threshold statement
+\[
+\Phi_t(g,D):\qquad \forall x\in D,\ g(x)\ge t.
+\]
+Equivalently,
+\[
+\Phi_t(g,D)
+\iff
+\inf_{x\in D} g(x)\ge t.
+\]
+
+\paragraph{Optimization tasks.}
+Instead of asking about only one threshold, we may ask for a verifier-certified interval
+\[
+[L,U]
+\qquad\text{such that}\qquad
+L\le \inf_{x\in D} g(x)\le U.
+\]
+Whenever the infimum is attained, the same statements may be read with $\min_{x\in D}g(x)$ in place of $\inf_{x\in D}g(x)$. This is the case in the paper's main compact CPWL settings.
+
+\paragraph{The trusted primitives.}
+The verifier trusts only the following four primitives.
+
+\paragraph{\normalfont\textsc{Feas}.}
+Given a verifier-facing set description $\mathfrak D$, the primitive either returns a witness
+\[
+x\in [\![\mathfrak D]\!]
+\]
+or an infeasibility certificate proving
+\[
+[\![\mathfrak D]\!]=\varnothing.
+\]
+
+\paragraph{\normalfont\textsc{AffOpt}.}
+Given a verifier-facing set description $\mathfrak D$ and an affine function
+\[
+a(x)=w^\top x+b,
+\]
+this primitive certifies the exact value
+\[
+L=\inf_{x\in [\![\mathfrak D]\!]} a(x),
+\]
+with the convention
+\[
+\inf_{x\in\varnothing} a(x)=+\infty.
+\]
+When $[\![\mathfrak D]\!]$ is nonempty and compact, the primitive may also return an optimizer
+\[
+x^\star\in [\![\mathfrak D]\!],
+\qquad
+L=a(x^\star).
+\]
+
+\paragraph{\normalfont\textsc{Eval}.}
+Given a point $x\in D$, the primitive returns $g(x)$ together with a certificate anchoring that value to the true semantics of the target.
+
+\paragraph{\normalfont\textsc{Check}.}
+This is a deterministic checker for finite symbolic payloads. It validates containments, finite covers, local lower bounds, local equalities, local threshold claims, and finite derivation chains assembled from the other trusted primitives. It does \emph{not} search for new certificates and it does \emph{not} act as a semantic oracle for arbitrary quantified statements.
+
+The interface is intentionally minimal. Search policies, branching heuristics, candidate generators, and runtime traces are not trusted. Only finite evidence reducible to \textsc{Feas}, \textsc{AffOpt}, \textsc{Eval}, and \textsc{Check} contributes to the verifier-visible semantics.
+
+\paragraph{Leaf descriptions and leaf covers.}
+All local evidence is attached to \emph{leaves}. A leaf description is written $\ell$ and carries a verifier-facing set description $\mathfrak D_\ell$. Its semantic domain is
+\[
+D_\ell := [\![\mathfrak D_\ell]\!].
+\]
+A finite family
+\[
+\mathcal L=\{\ell_1,\dots,\ell_N\}
+\]
+is a \emph{leaf cover} of $D$ if the verifier accepts a finite cover payload proving
+\[
+D\subseteq \bigcup_{\ell\in\mathcal L} D_\ell,
+\qquad
+D_\ell\subseteq D\quad \text{for all }\ell\in\mathcal L.
+\]
+Leaves may overlap.
+
+\paragraph{Refinement of leaf covers.}
+Given two leaf covers $\mathcal L$ and $\mathcal L'$, we say that $\mathcal L'$ \emph{refines} $\mathcal L$, written
+\[
+\mathcal L'\succeq \mathcal L,
+\]
+if there is a parent map
+\[
+p:\mathcal L'\to \mathcal L
+\]
+and accepted containments and cover statements such that every new leaf lies inside its parent,
+\[
+D_{\ell'}\subseteq D_{p(\ell')},
+\]
+and every old leaf is covered by its children,
+\[
+D_\ell\subseteq \bigcup_{\ell':\,p(\ell')=\ell} D_{\ell'}.
+\]
+This is the task-level notion of splitting one verified region into subregions.
+
+\subsection{Leaf Certificates and Point Witnesses}
+
+The task layer uses four kinds of local evidence.
+
+\paragraph{Infeasible leaves.}
+An infeasibility certificate is written
+\[
+\mathrm{Infeas}(\ell;\pi_\ell^{\mathrm{infeas}}),
+\]
+and is accepted exactly when \textsc{Feas} proves
+\[
+D_\ell=\varnothing.
+\]
+Its soundness is immediate. Infeasibility is also downward closed: if $D_{\ell'}\subseteq D_\ell$ and $D_\ell=\varnothing$, then $D_{\ell'}=\varnothing$ as well.
+
+\paragraph{Affine lower-bound leaves.}
+A lower-bound certificate is written
+\[
+\mathrm{LB}(\ell;a_\ell,L_\ell,\pi_\ell^{\mathrm{dom}},\pi_\ell^{\mathrm{opt}}),
+\]
+where $a_\ell(x)=w_\ell^\top x+b_\ell$ is affine, $\pi_\ell^{\mathrm{dom}}$ is accepted as a proof of
+\[
+a_\ell(x)\le g(x)
+\qquad \forall x\in D_\ell,
+\]
+and $\pi_\ell^{\mathrm{opt}}$ is accepted as a proof of
+\[
+L_\ell=\inf_{x\in D_\ell} a_\ell(x).
+\]
+Consequently,
+\[
+g(x)\ge a_\ell(x)\ge L_\ell
+\qquad \forall x\in D_\ell,
+\]
+so every accepted lower-bound certificate yields a sound leafwise lower bound on the target.
+
+Lower-bound certificates are reusable under refinement. If $D_{\ell'}\subseteq D_\ell$, then the same affine tag $a_\ell$ remains valid on the child leaf, and re-running \textsc{AffOpt} on $D_{\ell'}$ yields
+\[
+L_{\ell\to\ell'}:=\inf_{x\in D_{\ell'}} a_\ell(x),
+\qquad
+L_{\ell\to\ell'}\ge L_\ell.
+\]
+Thus refinement never weakens an accepted affine lower bound.
+
+\paragraph{Exact leaves.}
+An exact certificate is written
+\[
+\mathrm{Exact}(\ell;a_\ell,\mu_\ell,x_\ell^\star,\pi_\ell^{\mathrm{eq}},\pi_\ell^{\mathrm{opt}}),
+\]
+where the checker accepts
+\[
+g(x)=a_\ell(x)
+\qquad \forall x\in D_\ell,
+\]
+and \textsc{AffOpt} certifies that
+\[
+x_\ell^\star\in D_\ell,
+\qquad
+\mu_\ell=a_\ell(x_\ell^\star)=\inf_{x\in D_\ell} a_\ell(x).
+\]
+Hence
+\[
+\mu_\ell=\inf_{x\in D_\ell} g(x),
+\qquad
+g(x_\ell^\star)=\mu_\ell.
+\]
+Exact certificates also descend under refinement: on a nonempty child leaf the equality payload restricts, and the same affine tag is re-optimized there; on an empty child, \textsc{Feas} instead discharges the child by infeasibility.
+
+\paragraph{Point witnesses.}
+A point witness is written
+\[
+\mathrm{Pt}(x,v,\pi^{\mathrm{eval}}),
+\]
+where $x\in D$ and \textsc{Eval} certifies
+\[
+v=g(x).
+\]
+Every accepted point witness immediately yields a global upper bound
+\[
+\inf_{y\in D} g(y)\le g(x)=v.
+\]
+This is the only route by which a semantic upper bound enters the trusted substrate.
+
+These four objects---infeasible leaves, affine lower-bound leaves, exact leaves, and point witnesses---form the complete task-layer alphabet from which snapshot intervals and three-valued outputs are built.
+
+\subsection{Snapshots and Certified Interval Semantics}
+
+A verifier run usually exposes only a finite amount of already accepted evidence at any given time. The external meaning of that evidence is captured by a \emph{snapshot}.
+
+\paragraph{Evidence stores.}
+Let $\mathcal L$ be a leaf cover. An evidence store over $\mathcal L$ consists of
+\begin{enumerate}
+    \item a leaf-evidence map
+    \[
+    \mathsf E:\mathcal L\to \{\text{finite sets of accepted leaf certificates}\},
+    \]
+    where each $\mathsf E(\ell)$ may contain accepted \(\mathrm{Infeas}\), \(\mathrm{LB}\), or \(\mathrm{Exact}\) certificates; and
+    \item a finite set of point witnesses
+    \[
+    \mathsf W=\{\mathrm{Pt}(x_i,v_i,\pi_i^{\mathrm{eval}})\}_{i=1}^M.
+    \]
+\end{enumerate}
+The store is \emph{locally consistent} if no leaf simultaneously carries an accepted infeasibility certificate and an accepted optimization certificate. Multiple lower-bound or exact certificates on the same leaf are allowed.
+
+\paragraph{Snapshots.}
+A snapshot is a triple
+\[
+\mathsf{Snap}=(\mathcal L,\mathsf E,\mathsf W),
+\]
+where $\mathcal L$ is a leaf cover and $(\mathcal L,\mathsf E,\mathsf W)$ is a locally consistent evidence store.
+
+Given a snapshot, define the pool of numeric lower-bound values attached to a leaf by
+\[
+\mathsf B_{\mathsf E}(\ell)
+:=
+\{L: \mathrm{LB}(\ell;\cdots,L,\cdots)\in\mathsf E(\ell)\}
+\cup
+\{\mu: \mathrm{Exact}(\ell;\cdots,\mu,\cdots)\in\mathsf E(\ell)\}.
+\]
+Every exact certificate therefore contributes its exact leaf value to the same lower-bound pool as ordinary affine lower bounds.
+
+The leaf contribution is defined by
+\begin{equation}
+\operatorname{lb}_{\mathsf E}(\ell):=
+\begin{cases}
++\infty, & \text{if }\mathsf E(\ell)\text{ contains an accepted infeasibility certificate},\\[2mm]
+\sup \mathsf B_{\mathsf E}(\ell), & \text{if }\mathsf B_{\mathsf E}(\ell)\neq\varnothing,\\[2mm]
+-\infty, & \text{if }\mathsf B_{\mathsf E}(\ell)=\varnothing.
+\end{cases}
+\label{eq:appAnew-leaf-contrib}
+\end{equation}
+The global lower and upper bounds certified by the snapshot are
+\begin{equation}
+\mathrm{LB}(\mathsf{Snap})
+:=
+\min_{\ell\in\mathcal L} \operatorname{lb}_{\mathsf E}(\ell),
+\label{eq:appAnew-LB}
+\end{equation}
+\begin{equation}
+\mathrm{UB}(\mathsf{Snap})
+:=
+\begin{cases}
+\min\{v: \mathrm{Pt}(x,v,\pi^{\mathrm{eval}})\in\mathsf W\}, & \mathsf W\neq\varnothing,\\[2mm]
++\infty, & \mathsf W=\varnothing.
+\end{cases}
+\label{eq:appAnew-UB}
+\end{equation}
+The conventions $+\infty$ and $-\infty$ are what make the semantics anytime: even when no witness has yet been found, or no local lower-bound payload has yet been accepted on a leaf, the snapshot still has a well-defined certified interval.
+
+\paragraph{\normalfont Proposition (snapshot interval soundness).}
+If all evidence carried by a snapshot $\mathsf{Snap}=(\mathcal L,\mathsf E,\mathsf W)$ is accepted by the trusted primitives, then
+\begin{equation}
+\mathrm{LB}(\mathsf{Snap})
+\le
+\inf_{x\in D} g(x)
+\le
+\mathrm{UB}(\mathsf{Snap}).
+\label{eq:appAnew-interval}
+\end{equation}
+
+\paragraph{\normalfont Proof.}
+Fix any $x\in D$. Because $\mathcal L$ is a leaf cover of $D$, there exists some leaf $\ell\in\mathcal L$ with $x\in D_\ell$.
+
+If $\mathsf E(\ell)$ contained an accepted infeasibility certificate, then $D_\ell=\varnothing$, contradicting $x\in D_\ell$. Therefore either $\operatorname{lb}_{\mathsf E}(\ell)=-\infty$, in which case there is nothing to prove, or $\mathsf B_{\mathsf E}(\ell)$ is nonempty and every value in it is a valid lower bound on $g(x)$:
+\begin{itemize}
+    \item if $b=L\in \mathsf B_{\mathsf E}(\ell)$ comes from a lower-bound certificate, then $g(x)\ge L$ by local dominance plus affine optimization;
+    \item if $b=\mu\in \mathsf B_{\mathsf E}(\ell)$ comes from an exact certificate, then $g(x)\ge \mu$ because exactness implies $\mu=\inf_{y\in D_\ell} g(y)$.
+\end{itemize}
+Hence
+\[
+g(x)\ge \sup \mathsf B_{\mathsf E}(\ell)=\operatorname{lb}_{\mathsf E}(\ell)\ge \mathrm{LB}(\mathsf{Snap}).
+\]
+Since $x\in D$ was arbitrary, the left inequality of~\eqref{eq:appAnew-interval} follows.
+
+For the right inequality, if $\mathsf W=\varnothing$ then $\mathrm{UB}(\mathsf{Snap})=+\infty$ and there is nothing to prove. Otherwise choose a point witness of minimum value in $\mathsf W$:
+\[
+\mathrm{Pt}(x^\times,v^\times,\pi^{\mathrm{eval}})\in\mathsf W,
+\qquad
+v^\times=\mathrm{UB}(\mathsf{Snap}).
+\]
+By soundness of \textsc{Eval},
+\[
+\inf_{x\in D} g(x)\le g(x^\times)=v^\times=\mathrm{UB}(\mathsf{Snap}).
+\]
+This proves~\eqref{eq:appAnew-interval}. \qed
+
+Thus every accepted snapshot is already a certificate-carrying interval for the global optimization task. The three-valued threshold semantics is just a derived view of that interval.
+
+\subsection{Runtime States, Obligations, and Anytime Refinement}
+
+Snapshots are external objects. Internally, a run may also carry unfinished obligations that have not yet been discharged.
+
+\paragraph{Obligations and runtime states.}
+An obligation is a pair
+\[
+\omega=(\ell,\tau),
+\]
+where $\ell$ is a leaf and the task type $\tau$ is one of
+\[
+\mathrm{INFEAS},\qquad \mathrm{LB},\qquad \mathrm{SPLIT},\qquad \mathrm{WIT}.
+\]
+The intended meanings are:
+\begin{itemize}
+    \item \(\mathrm{INFEAS}\): try to prove that the leaf is empty;
+    \item \(\mathrm{LB}\): try to produce a certified affine lower bound on the leaf;
+    \item \(\mathrm{SPLIT}\): refine the leaf into subleaves; and
+    \item \(\mathrm{WIT}\): search for a point witness that may decrease the global upper bound.
+\end{itemize}
+A runtime state is a quadruple
+\[
+\Sigma=(\mathcal L,\mathsf E,\mathsf W,\mathsf Q),
+\]
+where $(\mathcal L,\mathsf E,\mathsf W)$ is a snapshot and $\mathsf Q$ is a finite obligation queue. The external projection is simply
+\[
+\mathsf{Snap}(\Sigma):=(\mathcal L,\mathsf E,\mathsf W).
+\]
+The queue is not part of the trusted semantics. It only records how the run may continue.
+
+A common \emph{need-driven} policy is to prioritize obligations on leaves that currently determine the global lower bound, leaves that still carry no lower-bound payload, leaves chosen for witness search, or leaves whose present local language cannot be strengthened without further splitting. The exact queue discipline is irrelevant to the verifier; only the accepted snapshot after each step matters externally.
+
+\paragraph{Basic state transitions.}
+At the task level, a state may evolve through the following three updates.
+\begin{enumerate}
+    \item \textbf{Add a point witness.} Insert a newly accepted point witness into $\mathsf W$.
+    \item \textbf{Add leaf evidence.} Insert a newly accepted infeasibility, lower-bound, or exact certificate into $\mathsf E(\ell)$ for some leaf $\ell$.
+    \item \textbf{Refine a leaf.} Replace one leaf $\ell$ by a finite family of child leaves $\mathrm{Ch}(\ell)$ together with accepted containments
+    \[
+    D_{\ell'}\subseteq D_\ell
+    \qquad (\ell'\in \mathrm{Ch}(\ell))
+    \]
+    and an accepted cover statement
+    \[
+    D_\ell\subseteq \bigcup_{\ell'\in \mathrm{Ch}(\ell)} D_{\ell'}.
+    \]
+\end{enumerate}
+The third update is the only subtle one, because accepted parent evidence must remain valid after refinement. The correct rule is \emph{descendant-closure replacement}: a refinement does not discard a parent conclusion and restart from scratch. Instead it pushes every accepted parent certificate to the child family in a verifier-checkable way.
+\begin{itemize}
+    \item An accepted infeasibility certificate on the parent induces accepted infeasibility certificates on all children.
+    \item An accepted affine lower-bound certificate on the parent is reused on each child by restricting the same affine tag and re-optimizing it over the child domain.
+    \item An accepted exact certificate on the parent restricts to each nonempty child; one then re-optimizes the same affine tag over that child. Any child proved empty is instead discharged by \textsc{Feas}.
+\end{itemize}
+This closure rule is what makes refinement monotone at the snapshot level.
+
+\paragraph{Monotone expansion.}
+Let
+\[
+\Sigma=(\mathcal L,\mathsf E,\mathsf W,\mathsf Q),
+\qquad
+\Sigma'=(\mathcal L',\mathsf E',\mathsf W',\mathsf Q').
+\]
+We say that $\Sigma'$ is a \emph{monotone expansion} of $\Sigma$, written
+\[
+\Sigma'\succeq \Sigma,
+\]
+if all of the following hold:
+\begin{enumerate}
+    \item $\mathcal L'$ refines $\mathcal L$;
+    \item $\mathsf W\subseteq \mathsf W'$;
+    \item on every unchanged leaf, old accepted certificates are preserved;
+    \item on every refined leaf, every accepted parent certificate has been pushed to the child family by descendant-closure replacement, possibly together with stronger new child certificates; and
+    \item no accepted evidence is deleted except through this explicit descent to children.
+\end{enumerate}
+
+\paragraph{\normalfont Proposition (anytime monotonicity).}
+If $\Sigma'\succeq \Sigma$, then
+\begin{equation}
+\mathrm{LB}(\mathsf{Snap}(\Sigma'))
+\ge
+\mathrm{LB}(\mathsf{Snap}(\Sigma)),
+\label{eq:appAnew-anytime-LB}
+\end{equation}
+\begin{equation}
+\mathrm{UB}(\mathsf{Snap}(\Sigma'))
+\le
+\mathrm{UB}(\mathsf{Snap}(\Sigma)).
+\label{eq:appAnew-anytime-UB}
+\end{equation}
+
+\paragraph{\normalfont Proof.}
+The upper-bound inequality is immediate because $\mathsf W\subseteq \mathsf W'$ and the upper bound is the minimum value over accepted point witnesses.
+
+For the lower bound, consider any old leaf $\ell\in \mathcal L$.
+\begin{itemize}
+    \item If $\ell$ survives unchanged, then its accepted lower-bound pool can only grow, so its leaf contribution cannot decrease.
+    \item If $\ell$ is refined into children $\mathrm{Ch}(\ell)$, then every child inherits every accepted parent conclusion in a sound way. Parent infeasibility yields child infeasibility; a parent lower-bound certificate yields a child lower-bound certificate with numeric value at least as large; and a parent exact certificate yields either child exactness or child infeasibility. Therefore every child contribution is at least as strong as the former parent contribution.
+\end{itemize}
+Hence replacing an old leaf by its refined child family cannot decrease the minimum leaf contribution over the cover. This proves~\eqref{eq:appAnew-anytime-LB}. Together with the upper-bound argument, we obtain~\eqref{eq:appAnew-anytime-UB}. \qed
+
+This is the precise sense in which the task-layer semantics is \emph{anytime}: every monotone refinement step narrows or preserves the certified interval, never widens it.
+
+\paragraph{\normalfont Corollary (monotone stability of decisive outputs).}
+Under monotone expansion, an accepted \textbf{COUNTEREX} output stays \textbf{COUNTEREX}, and an accepted \textbf{PROVED} output stays \textbf{PROVED}. Only \textbf{UNKNOWN} may change, and it may change only to a stronger conclusion.
+
+\paragraph{\normalfont Proof.}
+If a state already contains a point witness with value below the threshold, that witness remains present in every monotone expansion, so the counterexample persists. If a state already proves the threshold statement, then by soundness the statement is true; a later accepted counterexample witness cannot appear without contradiction, while the lower bound can only increase by the anytime monotonicity inequality~\eqref{eq:appAnew-anytime-LB}. \qed
+
+\subsection{Three-Valued Semantics and Finite Exactification}
+
+The interval semantics induces a three-valued threshold semantics.
+
+\paragraph{Three-valued rule.}
+Given a threshold $t\in\mathbb R$ and a snapshot $\mathsf{Snap}$, output
+\begin{itemize}
+    \item \textbf{COUNTEREX} if some accepted point witness in $\mathsf W$ has value $v<t$;
+    \item \textbf{PROVED} if no such counterexample witness exists and
+    \[
+    \mathrm{LB}(\mathsf{Snap})\ge t;
+    \]
+    \item \textbf{UNKNOWN} otherwise, together with the certified interval
+    \[
+    [\mathrm{LB}(\mathsf{Snap}),\mathrm{UB}(\mathsf{Snap})].
+    \]
+\end{itemize}
+The priority is
+\[
+\mathrm{COUNTEREX}\ \succ\ \mathrm{PROVED}\ \succ\ \mathrm{UNKNOWN}.
+\]
+
+\paragraph{\normalfont Proposition (three-valued soundness).}
+If all evidence carried by a snapshot is accepted, then:
+\begin{enumerate}
+    \item \textbf{COUNTEREX} implies
+    \[
+    \inf_{x\in D} g(x)< t;
+    \]
+    \item \textbf{PROVED} implies
+    \[
+    \inf_{x\in D} g(x)\ge t;
+    \]
+    \item \textbf{UNKNOWN} returns a certified interval containing $\inf_D g$.
+\end{enumerate}
+
+\paragraph{\normalfont Proof.}
+If the output is \textbf{COUNTEREX}, there exists an accepted point witness with value $v<t$, so by soundness of \textsc{Eval}
+\[
+\inf_{x\in D} g(x)\le v<t.
+\]
+If the output is \textbf{PROVED}, then by definition $\mathrm{LB}(\mathsf{Snap})\ge t$, and Proposition~\eqref{eq:appAnew-interval} gives
+\[
+\inf_{x\in D} g(x)\ge \mathrm{LB}(\mathsf{Snap})\ge t.
+\]
+The \textbf{UNKNOWN} case is exactly the interval soundness statement~\eqref{eq:appAnew-interval}. \qed
+
+\paragraph{Finite exactification.}
+A finite snapshot
+\[
+\mathsf{Snap}^\star=(\mathcal L^\star,\mathsf E^\star,\mathsf W^\star)
+\]
+is a \emph{finite exactification} of $(g,D)$ if all of the following hold:
+\begin{enumerate}
+    \item $\mathcal L^\star$ is a finite leaf cover of $D$;
+    \item every leaf in $\mathcal L^\star$ is either discharged by an accepted infeasibility certificate or carries an accepted exact certificate; and
+    \item whenever a leaf carries an exact certificate with optimizer $x_\ell^\star$ and value $\mu_\ell$, the point witness
+    \[
+    \mathrm{Pt}(x_\ell^\star,\mu_\ell,\pi_\ell^{\mathrm{eval}})
+    \]
+    is present in $\mathsf W^\star$.
+\end{enumerate}
+This is a purely task-level notion. It says exactly what finite external evidence is sufficient for the certified interval to collapse to the true optimum.
+
+\paragraph{\normalfont Theorem (finite exactification collapse).}
+If $\mathsf{Snap}^\star$ is a finite exactification of $(g,D)$, then
+\begin{equation}
+\mathrm{LB}(\mathsf{Snap}^\star)
+=
+\mathrm{UB}(\mathsf{Snap}^\star)
+=
+\inf_{x\in D} g(x).
+\label{eq:appAnew-collapse}
+\end{equation}
+If the infimum is attained, then both sides are equal to $\min_{x\in D} g(x)$.
+
+\paragraph{\normalfont Proof.}
+Let $\mathcal L_{\mathrm{live}}^\star$ denote the leaves carrying exact certificates. For every such leaf,
+\[
+\mu_\ell=\inf_{x\in D_\ell} g(x)
+\]
+by exactness. Moreover, any other accepted lower-bound value on the same leaf is at most $\mu_\ell$, because it is itself a valid lower bound on $g$ over $D_\ell$. Therefore the leaf contribution on every live leaf is exactly $\mu_\ell$, while infeasible leaves contribute $+\infty$. Hence
+\[
+\mathrm{LB}(\mathsf{Snap}^\star)
+=
+\min_{\ell\in \mathcal L_{\mathrm{live}}^\star} \mu_\ell.
+\]
+Since the live leaves cover all feasible points of $D$, the right-hand side is exactly $\inf_{x\in D} g(x)$.
+
+On the other hand, every live leaf contributes its optimizer witness to $\mathsf W^\star$, so
+\[
+\mathrm{UB}(\mathsf{Snap}^\star)
+\le
+\min_{\ell\in \mathcal L_{\mathrm{live}}^\star} \mu_\ell
+=
+\inf_{x\in D} g(x).
+\]
+Combined with the general interval soundness statement~\eqref{eq:appAnew-interval}, this proves~\eqref{eq:appAnew-collapse}. \qed
+
+As a direct corollary, once a run reaches a finite exactification, the threshold task becomes binary and exact: for every threshold $t$, the output is \textbf{PROVED} iff $\inf_D g\ge t$ and \textbf{COUNTEREX} iff $\inf_D g<t$. This theorem is purely semantic. Section~\ref{sec:guard-exactification} later supplies the structural reason why such finite exactification exists for the CPWL class treated in the paper.

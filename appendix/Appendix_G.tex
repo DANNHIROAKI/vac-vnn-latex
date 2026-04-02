@@ -1,0 +1,410 @@
+\section{Hardness Reductions, Approximation Barrier, and Boundary Cases}
+\label{app:dict-hardness}
+
+This appendix expands Section~\ref{sec:vac-minimization}. The main text isolates a deliberately narrow algorithmic question: once a finite pool of verifier-visible candidate cells has \emph{already} been exposed, how hard is it to choose a smallest accepted subcover? The answer is that unrestricted explicit-dictionary selection already contains the full combinatorial hardness of \textsc{Set Cover}. Here we give the full reductions, record optimum preservation on both the exact and threshold sides, transfer the classical logarithmic approximation barrier, and make the boundary cases explicit.
+
+The scope is intentionally precise. We do \emph{not} claim here that unrestricted semantic VAC over an arbitrary continuous verifier language is itself presented as an NP-complete decision problem. Instead, we isolate the more robust statement that the finite-dictionary decision problems are already NP-complete, and that the corresponding optimization problems are already hard, even when every local validity condition can be re-checked by direct pointwise inspection.
+
+Throughout, all numerical inputs are rational and encoded in binary. In particular, the point domain
+\[
+U=\{u_1,\dots,u_N\}\subseteq \mathbb Q^n
+\]
+and the value table
+\[
+\{g(u_i)\}_{i=1}^N\subseteq \mathbb Q
+\]
+are explicit parts of the input. We write
+\[
+\operatorname{OPT}_{\mathrm{SC}}(\mathcal U,\mathcal S)
+\]
+for the optimum of a set-cover instance with universe $\mathcal U$ and family $\mathcal S$.
+
+\subsection{Finite-Dictionary Problems and Explicit Verification}
+
+We first restate the two dictionary-restricted decision problems together with their associated optimization problems in fully explicit form.
+
+\paragraph{Exact-side dictionary problem.}
+An instance of \textsc{Exact-VAC-Dict} consists of:
+\begin{enumerate}
+    \item a finite rational point set
+    \[
+    U=\{u_1,\dots,u_N\}\subseteq \mathbb Q^n;
+    \]
+    \item an explicit value table $\{g(u_i)\}_{i=1}^N$;
+    \item a finite dictionary
+    \[
+    \mathcal D_{=} = \{\eta_1,\dots,\eta_m\},
+    \qquad
+    \eta_j=(A_j,a_j),
+    \]
+    where $A_j\subseteq U$ is explicitly listed and $a_j$ is an affine function with rational coefficients;
+    \item a budget $k\in\mathbb N$.
+\end{enumerate}
+A dictionary entry $\eta_j=(A_j,a_j)$ is \emph{valid} if
+\[
+g(u)=a_j(u)
+\qquad \forall u\in A_j.
+\]
+The decision problem asks whether there exists an index set
+\[
+J\subseteq \{1,\dots,m\},
+\qquad
+|J|\le k,
+\]
+such that every selected entry is valid and
+\[
+U\subseteq \bigcup_{j\in J} A_j.
+\]
+The associated optimization problem minimizes the number of selected valid entries and is denoted
+\[
+\operatorname{OPT}_{=}(U,\mathcal D_{=}).
+\]
+
+\paragraph{Threshold-side dictionary problem.}
+An instance of \textsc{Thresh-VAC-Dict} consists of the same finite rational point set $U$, the same explicit value table, a rational threshold $t$, a finite dictionary
+\[
+\mathcal D_{\ge}=\{A_1,\dots,A_m\},
+\qquad
+A_j\subseteq U,
+\]
+and a budget $k\in\mathbb N$. A dictionary entry $A_j$ is \emph{valid} if
+\[
+g(u)\ge t
+\qquad \forall u\in A_j.
+\]
+The decision problem asks whether there exists
+\[
+J\subseteq \{1,\dots,m\},
+\qquad
+|J|\le k,
+\]
+such that every selected entry is valid and
+\[
+U\subseteq \bigcup_{j\in J} A_j.
+\]
+Its optimization value is written
+\[
+\operatorname{OPT}_{\ge}(U,\mathcal D_{\ge},t).
+\]
+
+These two problems are the cleanest dictionary-restricted versions of verifier-aligned cover selection. All candidate local proof units are already explicit. The remaining tasks are the decision question of whether a budget-$k$ accepted subcover exists and the associated optimization question of choosing a smallest accepted subcover.
+
+\paragraph{Proposition G.1 (Both dictionary problems belong to $\mathrm{NP}$).}
+\textsc{Exact-VAC-Dict} and \textsc{Thresh-VAC-Dict} are both in $\mathrm{NP}$.
+
+\paragraph{Proof.}
+For \textsc{Exact-VAC-Dict}, a witness is the chosen index set
+\[
+J\subseteq \{1,\dots,m\}.
+\]
+The verifier checks in polynomial time that $|J|\le k$, that for every selected entry $\eta_j=(A_j,a_j)$ and every $u\in A_j$ one has
+\[
+g(u)=a_j(u),
+\]
+and that the selected subsets cover all of $U$. Since the point set, the value table, and the affine coefficients are explicit rational data, every arithmetic comparison is polynomial-time in the total input length.
+
+For \textsc{Thresh-VAC-Dict}, the same witness format works. The verifier checks $|J|\le k$, checks for every selected subset $A_j$ and every $u\in A_j$ that
+\[
+g(u)\ge t,
+\]
+and then checks that the selected subsets cover all of $U$. This is again polynomial-time. Hence both problems lie in $\mathrm{NP}$. \qed
+
+\subsection{Optimum-Preserving Reduction to \textsc{Exact-VAC-Dict}}
+
+Fix an arbitrary \textsc{Set Cover} instance
+\[
+(\mathcal U,\mathcal S,k),
+\qquad
+\mathcal U=\{e_1,\dots,e_N\},
+\qquad
+\mathcal S=\{S_1,\dots,S_m\}.
+\]
+We construct an instance of \textsc{Exact-VAC-Dict} in polynomial time as follows.
+\begin{enumerate}
+    \item Set the ambient dimension to $n=1$.
+    \item Encode each universe element $e_i$ by the rational point
+    \[
+    u_i:=i\in\mathbb Q.
+    \]
+    Thus
+    \[
+    U:=\{u_1,\dots,u_N\}\subseteq\mathbb Q.
+    \]
+    \item Define the target values by the constant table
+    \[
+    g(u_i):=0
+    \qquad (1\le i\le N).
+    \]
+    \item For every set $S_j\in\mathcal S$, create one exact dictionary entry
+    \[
+    \eta_j=(A_j,a_j),
+    \qquad
+    A_j:=\{u_i: e_i\in S_j\},
+    \qquad
+    a_j(x):=0.
+    \]
+    \item Keep the same budget $k$.
+\end{enumerate}
+Call the resulting exact-side instance
+\[
+I_{=}(U,g,\mathcal D_{=},k).
+\]
+
+\paragraph{Lemma G.2 (All constructed exact entries are valid).}
+Every dictionary entry $\eta_j=(A_j,a_j)$ in $I_{=}$ is valid.
+
+\paragraph{Proof.}
+For every $u\in A_j$ we have, by construction,
+\[
+g(u)=0=a_j(u).
+\]
+Thus each entry satisfies the exact-side validity condition. \qed
+
+\paragraph{Lemma G.3 (YES/NO equivalence for the exact-side reduction).}
+The original set-cover instance $(\mathcal U,\mathcal S,k)$ is a YES instance if and only if the constructed exact-side instance $I_{=}$ is a YES instance.
+
+\paragraph{Proof.}
+Assume first that $(\mathcal U,\mathcal S,k)$ is a YES instance. Then some index set
+\[
+J\subseteq \{1,\dots,m\},
+\qquad |J|\le k,
+\]
+satisfies
+\[
+\mathcal U\subseteq \bigcup_{j\in J} S_j.
+\]
+By Lemma~G.2 all selected exact entries are valid. To show exact-side coverage, take any encoded point $u_i\in U$. Since the corresponding element $e_i$ lies in some selected set $S_j$, the point $u_i$ lies in the corresponding subset $A_j$. Hence
+\[
+U\subseteq \bigcup_{j\in J} A_j,
+\]
+so $I_{=}$ is a YES instance.
+
+Conversely, suppose $I_{=}$ is a YES instance. Then some index set
+\[
+J\subseteq \{1,\dots,m\},
+\qquad |J|\le k,
+\]
+selects valid entries and satisfies
+\[
+U\subseteq \bigcup_{j\in J} A_j.
+\]
+Take any universe element $e_i\in\mathcal U$. Its encoded point $u_i$ belongs to $U$, so coverage implies that $u_i\in A_j$ for some selected $j\in J$. By the definition of $A_j$, this is equivalent to $e_i\in S_j$. Hence every universe element is covered by the selected sets, so $(\mathcal U,\mathcal S,k)$ is also a YES instance. \qed
+
+\paragraph{Lemma G.4 (Optimum preservation on the exact side).}
+For the reduction above,
+\[
+\operatorname{OPT}_{=}(U,\mathcal D_{=})
+=
+\operatorname{OPT}_{\mathrm{SC}}(\mathcal U,\mathcal S).
+\]
+
+\paragraph{Proof.}
+The reduction preserves the chosen index set exactly: selecting the subfamily $\{S_j:j\in J\}$ in the set-cover instance corresponds to selecting the exact dictionary entries indexed by the same $J$, and vice versa. Lemma~G.3 shows that cover feasibility is preserved in both directions, and the cardinality of the selected family is unchanged. Therefore the optimal values are equal. \qed
+
+\subsection{Optimum-Preserving Reduction to \textsc{Thresh-VAC-Dict}}
+
+We now use the same set-cover instance
+\[
+(\mathcal U,\mathcal S,k),
+\qquad
+\mathcal U=\{e_1,\dots,e_N\},
+\qquad
+\mathcal S=\{S_1,\dots,S_m\},
+\]
+and build a threshold-side dictionary instance.
+\begin{enumerate}
+    \item Reuse the rational point encoding
+    \[
+    U=\{u_1,\dots,u_N\}\subseteq\mathbb Q,
+    \qquad
+    u_i:=i.
+    \]
+    \item Reuse the constant value table
+    \[
+    g(u_i):=0
+    \qquad (1\le i\le N).
+    \]
+    \item Fix the threshold
+    \[
+    t:=0.
+    \]
+    \item For each set $S_j\in\mathcal S$, create one threshold dictionary entry
+    \[
+    A_j:=\{u_i: e_i\in S_j\}.
+    \]
+    \item Keep the same budget $k$.
+\end{enumerate}
+Call the resulting threshold-side instance
+\[
+I_{\ge}=(U,g,t,\mathcal D_{\ge},k).
+\]
+
+\paragraph{Lemma G.5 (All constructed threshold entries are valid).}
+Every threshold dictionary entry $A_j$ in $I_{\ge}$ is valid.
+
+\paragraph{Proof.}
+For every $u\in A_j$ we have, by construction,
+\[
+g(u)=0\ge 0=t.
+\]
+Hence each threshold entry is valid. \qed
+
+\paragraph{Lemma G.6 (YES/NO equivalence for the threshold-side reduction).}
+The original set-cover instance $(\mathcal U,\mathcal S,k)$ is a YES instance if and only if the constructed threshold-side instance $I_{\ge}$ is a YES instance.
+
+\paragraph{Proof.}
+If the selected sets indexed by $J$ cover $\mathcal U$, then the corresponding subsets $A_j$ cover $U$ by the same point-encoding argument as in Lemma~G.3, and all selected threshold entries are valid by Lemma~G.5. Hence $I_{\ge}$ is a YES instance.
+
+Conversely, if the selected threshold entries indexed by $J$ cover $U$, then for every encoded point $u_i$ there exists some selected $A_j$ containing it. By construction this means $e_i\in S_j$, so the corresponding selected sets cover all of $\mathcal U$. Thus the original set-cover instance is a YES instance. \qed
+
+\paragraph{Lemma G.7 (Optimum preservation on the threshold side).}
+For the reduction above,
+\[
+\operatorname{OPT}_{\ge}(U,\mathcal D_{\ge},0)
+=
+\operatorname{OPT}_{\mathrm{SC}}(\mathcal U,\mathcal S).
+\]
+
+\paragraph{Proof.}
+Exactly as on the exact side, the reduction preserves the chosen index set and its size. Lemma~G.6 gives feasibility preservation in both directions. Hence the optimum values agree. \qed
+
+\subsection{NP-Completeness and Approximation Barrier}
+
+The full decision theorem from Section~\ref{sec:vac-minimization} is now immediate.
+
+\paragraph{Theorem G.8 (NP-completeness of explicit-dictionary selection).}
+The decision problems \textsc{Exact-VAC-Dict} and \textsc{Thresh-VAC-Dict} are NP-complete.
+
+\paragraph{Proof.}
+By Proposition~G.1, both problems lie in $\mathrm{NP}$. Lemma~G.3 gives a polynomial-time reduction from \textsc{Set Cover} to \textsc{Exact-VAC-Dict}, and Lemma~G.6 gives a polynomial-time reduction from \textsc{Set Cover} to \textsc{Thresh-VAC-Dict}. Hence both dictionary-restricted decision problems are NP-hard. Combining NP-hardness with Proposition~G.1 yields NP-completeness. \qed
+
+The structure of the reduction matters. The target function is constant, the threshold is constant, and every local dictionary entry is automatically valid. Therefore the hardness does \emph{not} come from local symbolic verification. It comes entirely from the combinatorics of selecting a smallest accepted subcover.
+
+\paragraph{Lemma G.9 (Approximation-preserving transfer).}
+Let $\rho:\mathbb N\to[1,\infty)$ be any function.
+\begin{enumerate}
+    \item If there exists a polynomial-time $\rho(N)$-approximation algorithm for \textsc{Exact-VAC-Dict}, then there exists a polynomial-time $\rho(N)$-approximation algorithm for \textsc{Set Cover}.
+    \item If there exists a polynomial-time $\rho(N)$-approximation algorithm for \textsc{Thresh-VAC-Dict}, then there exists a polynomial-time $\rho(N)$-approximation algorithm for \textsc{Set Cover}.
+\end{enumerate}
+Here $N$ denotes the size of the universe of the original set-cover instance, equivalently the size of the encoded point domain $U$.
+
+\paragraph{Proof.}
+We prove the exact-side statement; the threshold-side proof is identical.
+
+Assume there is a polynomial-time algorithm $\mathcal A_{=}$ that, on every exact dictionary instance with $|U|=N$, returns a valid subcover of size at most
+\[
+\rho(N)\,\operatorname{OPT}_{=}(U,\mathcal D_{=}).
+\]
+Given a set-cover instance $(\mathcal U,\mathcal S)$ with $|\mathcal U|=N$, form the exact-side dictionary instance $I_{=}$ by the reduction above and run $\mathcal A_{=}$ on it. Let $J$ be the returned index set. Mapping $J$ back to the set family
+\[
+\{S_j:j\in J\}\subseteq\mathcal S
+\]
+produces a set cover of $\mathcal U$ by Lemma~G.3. Moreover,
+\[
+|J|
+\le
+\rho(N)\,\operatorname{OPT}_{=}(U,\mathcal D_{=})
+=
+\rho(N)\,\operatorname{OPT}_{\mathrm{SC}}(\mathcal U,\mathcal S),
+\]
+where the equality is Lemma~G.4. Hence we obtain a polynomial-time $\rho(N)$-approximation for \textsc{Set Cover}. The threshold-side statement follows from the same argument using Lemma~G.7. \qed
+
+\paragraph{Corollary G.10 (Logarithmic approximation barrier for explicit-dictionary minimization).}
+For every fixed $\varepsilon\in(0,1)$, unless $\mathrm P=\mathrm{NP}$, there is no polynomial-time algorithm that approximates either
+\[
+\operatorname{OPT}_{=}(U,\mathcal D_{=})
+\qquad\text{or}\qquad
+\operatorname{OPT}_{\ge}(U,\mathcal D_{\ge},t)
+\]
+within factor
+\[
+(1-\varepsilon)\ln N,
+\qquad N:=|U|.
+\]
+
+\paragraph{Proof.}
+The classical logarithmic approximation barrier for \textsc{Set Cover} goes back to Feige~\cite{Feige1998SetCover}, and the fixed-$\varepsilon$ hardness form used in Section~\ref{sec:vac-minimization} is given by Dinur and Steurer~\cite{DinurSteurer2014}. If either associated dictionary-restricted optimization problem admitted a polynomial-time $(1-\varepsilon)\ln N$ approximation, Lemma~G.9 would transfer the same guarantee to \textsc{Set Cover}, contradicting those lower bounds. \qed
+
+This is the natural approximation scale for classical cover minimization within the unrestricted explicit-dictionary model. Thus the selection layer is not a benign post-processing step after candidate generation; even after candidate cells are explicit, it already inherits the standard logarithmic barrier of set-family optimization.
+
+\subsection{Boundary Cases and Scope Clarifications}
+
+We close by recording exactly what the appendix establishes and what it does not.
+
+\paragraph{Proposition G.11 (Threshold-side hardness already holds on the true-claim subclass).}
+Restrict \textsc{Thresh-VAC-Dict} to instances satisfying
+\[
+\inf_{u\in U} g(u)\ge t.
+\]
+The restricted decision and optimization problems remain NP-hard, and the optimum-preserving reduction above still applies.
+
+\paragraph{Proof.}
+In every reduced threshold instance $I_{\ge}$ we set
+\[
+g\equiv 0
+\qquad\text{on }U,
+\qquad
+ t=0.
+\]
+Hence
+\[
+\inf_{u\in U} g(u)=0=t.
+\]
+So the reduction lands entirely inside the subclass where the global threshold claim is true. Lemmas~G.6--G.7 therefore already prove NP-hardness and optimum preservation on that restricted subclass. \qed
+
+This clarifies an important boundary case. On the threshold side, false claims automatically force semantic threshold VAC to be $+\infty$ by Proposition~F.12 of Appendix~\ref{app:vac-bounds}. The hardness result here is not exploiting that trivial obstruction; it survives on the much smaller subclass where the threshold claim itself is globally true.
+
+\paragraph{Proposition G.12 (Trivial conventions and redundant entries).}
+For both dictionary problems:
+\begin{enumerate}
+    \item if $U=\varnothing$, then the optimum value is $0$;
+    \item deleting an invalid dictionary entry does not change the optimum value;
+    \item deleting an empty dictionary entry does not increase the optimum value;
+    \item deleting a duplicate copy of an already-present valid entry does not increase the optimum value.
+\end{enumerate}
+
+\paragraph{Proof.}
+If $U=\varnothing$, the empty subfamily already covers the domain, so the optimum is $0$. An invalid entry can never appear in a feasible solution by definition, hence deleting it does not change feasibility or the optimum. An empty entry covers no points, so deleting it cannot remove any feasible cover. A duplicate valid entry contributes the same subset as an existing one, so retaining one copy is always as good as retaining both. \qed
+
+Thus the NP-hardness statement is not an artifact of pathological dictionary encodings. It persists after the obvious syntactic cleanup operations.
+
+\paragraph{(i) The hardness is dictionary-restricted.}
+The input already contains the full finite candidate pool. No claim is made here about the unrestricted decision complexity of semantic VAC over arbitrary infinite continuous languages.
+
+\paragraph{(ii) The hardness is purely combinatorial.}
+In the constructed instances, local validity is trivial:
+\[
+g\equiv 0,
+\qquad
+ a_j\equiv 0,
+\qquad
+ t=0.
+\]
+Hence the obstruction comes entirely from selecting a smallest accepted subcover, not from generating cells or proving local soundness.
+
+\paragraph{(iii) What the reduction proves unconditionally.}
+The reduction proves hardness for the unrestricted explicit-dictionary selection problem: the input already contains the full finite candidate family, and the only remaining task is to choose a smallest accepted subcover.
+
+\paragraph{Definition G.13 (Pipeline-exposed dictionary class).}
+Fix a family $\Pi$ of proof-producing mechanisms. For each verification instance $I$, let $\mathcal D_\Pi(I)$ denote the finite dictionary of verifier-visible candidate cells exposed by $\Pi$ before any cover-minimization step. The exposed dictionary class of $\Pi$ is
+\[
+\mathfrak C_\Pi:=\{\mathcal D_\Pi(I): I\in\mathcal I_\Pi\},
+\]
+where $\mathcal I_\Pi$ is the instance family on which $\Pi$ is defined.
+
+\paragraph{Definition G.14 (Set-cover-rich exposed family class).}
+We say that $\Pi$ is \emph{set-cover-rich} if there is a polynomial-time mapping from every set-cover instance $(\mathcal U,\mathcal S,k)$ to a verification instance $I$ such that feasible accepted subcovers of $\mathcal D_\Pi(I)$ correspond to set covers of $(\mathcal U,\mathcal S)$. If the correspondence preserves optimum cardinality, we say that the realization is \emph{optimum-preserving}.
+
+\paragraph{Theorem G.15 (Conditional transfer to concrete pipelines).}
+Let $\Pi$ be a proof-producing mechanism whose exposed dictionary class is set-cover-rich. Then the induced selection problem over dictionaries in $\mathfrak C_\Pi$ is NP-hard. If the realizing map is optimum-preserving, then the logarithmic inapproximability barrier of Corollary~G.10 transfers as well.
+
+\paragraph{Proof sketch.}
+Compose the classical set-cover reduction used above with the realizing map into $\mathfrak C_\Pi$. By hypothesis, feasible accepted subcovers correspond to set covers, and in the optimum-preserving case the optimum values coincide. NP-hardness and logarithmic inapproximability therefore transfer directly. \qed
+
+\paragraph{Remark G.16 (Why the richness hypothesis cannot be dropped).}
+Without a representability hypothesis, no generic transfer from unrestricted explicit dictionaries to arbitrary pipeline-generated candidate pools is valid. A concrete pipeline may expose only a highly structured class of candidate families, and within such classes minimum-cover problems can be substantially easier than general set cover. The present appendix therefore proves unconditional hardness only for unrestricted explicit dictionaries. Characterizing which pipeline-generated family classes are set-cover-rich, and which admit polynomial-time minimization, is a natural open problem beyond the scope of the present paper.
+
+\paragraph{(iv) Relation to the proof-language layer.}
+Section~\ref{sec:vac-proof-languages} shows that, once a concrete syntax realizes semantic covers with only constant-factor leaf overhead, minimum leaf count tracks the corresponding semantic selection problem up to that fixed realization factor. Combined with the results above, this identifies a genuine combinatorial complexity source at the explicit-dictionary selection layer. Transfer to any particular proof pipeline, however, requires that the exposed candidate-family class satisfy an additional representability hypothesis such as Theorem~G.15.
+
+In that precise sense, Section~\ref{sec:vac-minimization} is about \emph{selection-layer hardness}, and this appendix supplies the full reductions behind that claim.

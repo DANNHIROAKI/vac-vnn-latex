@@ -1,0 +1,497 @@
+\section{Proof Languages, SCC/DL, and Arrangement Degeneration}
+\label{app:proof-language-dl}
+
+This appendix expands Section~\ref{sec:vac-proof-languages}. The main text uses a three-layer picture: after fixing a verifier-facing language, VAC measures the semantic cover quantity; a concrete proof language realizes that quantity with some leaf overhead, measured by SCC; and a binary encoding adds a further description-length layer, measured by DL. The purpose of this appendix is to formalize that separation and the assumptions under which the three layers are linearly comparable.
+
+There are four tasks.
+\begin{enumerate}
+    \item We formalize proof languages as finite verifier-visible objects whose leaves denote accepted certified cells and whose global payload proves a cover statement in the grammar of Appendix~\ref{app:cell-payload-syntax}.
+    \item We define leaf-realizing and $c$-cell-complete proof languages and prove the exact-side and threshold-side equivalence between VAC and minimum leaf count.
+    \item We isolate the linear-encoding hypothesis under which description length is linearly equivalent to syntactic certificate complexity.
+    \item We record the full restricted exact-side statement under which arrangement count reappears as a degeneration of verifier-aligned cover complexity.
+\end{enumerate}
+
+Throughout, we fix a verifier-facing cell language $\mathfrak L$ in the sense of Section~\ref{sec:verifier-model}. Thus every
+\[
+\gamma\in\mathfrak L
+\]
+comes with a verifier-facing set description $\mathfrak D(\gamma)$ and semantic cell
+\[
+C(\gamma):=[\![\mathfrak D(\gamma)]\!]\subseteq D.
+\]
+Exact certified cells, threshold certified cells, and accepted cover payloads are understood exactly as formalized in Appendix~\ref{app:cell-payload-syntax}.
+
+\subsection{Proof Languages and the Canonical Flat Leaf-Table Syntax}
+
+A proof language is a syntactic realization layer. It does not change what the verifier-visible local proof unit is; it only changes how a finite family of such local units is packaged into one accepted proof object.
+
+\paragraph{Definition (proof language over $\mathfrak L$).}
+A proof language $\mathcal P$ over $\mathfrak L$ is a class of finite objects $P$ such that every object is equipped with:
+\begin{enumerate}
+    \item a finite leaf set
+    \[
+    \operatorname{Leaves}(P),
+    \]
+    \item a leaf-semantics map sending each leaf $\lambda\in\operatorname{Leaves}(P)$ to one certified cell over $\mathfrak L$, and
+    \item a finite global payload that the verifier can deterministically re-check as a proof that the leaf cells jointly form the required cover.
+\end{enumerate}
+
+The same syntax may be used on two different semantic sides.
+\begin{itemize}
+    \item On the \emph{exact side}, every leaf denotes an exact certified cell
+    \[
+    \mathfrak c_\lambda=(\gamma_\lambda,a_\lambda,\pi_\lambda^{=}).
+    \]
+    \item On the \emph{threshold side}, every leaf denotes a threshold certified cell
+    \[
+    \mathfrak c_\lambda=(\gamma_\lambda,\pi_\lambda^{\ge}).
+    \]
+\end{itemize}
+The proof object may carry additional syntax---for example tree structure, node tags, sharing metadata, or explicit cover-witness tables---but all such extra structure is realization overhead rather than new semantic proof content.
+
+\paragraph{Definition (accepted proof objects).}
+An object $P\in\mathcal P$ is an \emph{accepted exact proof object} for $(g,D)$ if:
+\begin{enumerate}
+    \item every leaf of $P$ is interpreted as an exact certified cell over $\mathfrak L$;
+    \item the verifier accepts every leaf-level exact payload; and
+    \item the verifier accepts the global payload as a proof of
+    \[
+    D\subseteq \bigcup_{\lambda\in\operatorname{Leaves}(P)} |\mathfrak c_\lambda|.
+    \]
+\end{enumerate}
+Similarly, $P$ is an \emph{accepted threshold proof object} for $(g,D,t)$ if each leaf is interpreted as a threshold certified cell and the verifier accepts the corresponding threshold-side cover statement.
+
+Whenever $P$ is accepted, its leaves already determine a finite semantic certified cover. We write
+\[
+\operatorname{Cells}^{=}(P)
+:=
+\{\mathfrak c_\lambda:\lambda\in\operatorname{Leaves}(P)\}
+\]
+for the exact-side extracted family, and analogously
+\[
+\operatorname{Cells}^{\ge}(P)
+:=
+\{\mathfrak c_\lambda:\lambda\in\operatorname{Leaves}(P)\}
+\]
+for the threshold side.
+
+\paragraph{Definition (flat leaf-table language).}
+For every verifier-facing language $\mathfrak L$, define the flat leaf-table language
+\[
+\mathcal P_{\mathrm{tab}}(\mathfrak L)
+\]
+as follows.
+\begin{itemize}
+    \item An exact-side object is a pair
+    \[
+    P^{=}
+    =
+    \bigl(\{(\gamma_i,a_i,\pi_i^{=})\}_{i=1}^N,\ \Pi^{\mathrm{cov}}\bigr),
+    \]
+    where each listed entry is an exact certified cell and $\Pi^{\mathrm{cov}}$ is an accepted global cover payload for the listed family.
+    \item A threshold-side object is defined analogously as
+    \[
+    P^{\ge}
+    =
+    \bigl(\{(\gamma_i,\pi_i^{\ge})\}_{i=1}^N,\ \Pi^{\mathrm{cov}}\bigr).
+    \]
+\end{itemize}
+Its leaves are literally the listed table entries themselves. No hidden normalization layer is inserted.
+
+\paragraph{Proposition E.1 (the flat leaf-table syntax realizes VAC exactly).}
+For every verifier-facing language $\mathfrak L$,
+\[
+\mathrm{SCC}^{=}_{\mathcal P_{\mathrm{tab}}(\mathfrak L)}(g;D)
+=
+\mathrm{VAC}^{=}_{\mathfrak L}(g;D),
+\]
+\[
+\mathrm{SCC}^{\ge}_{\mathcal P_{\mathrm{tab}}(\mathfrak L)}(g;D,t)
+=
+\mathrm{VAC}^{\ge}_{\mathfrak L}(g;D,t).
+\]
+
+\paragraph{Proof.}
+We prove the exact-side identity; the threshold side is identical.
+
+Every exact certified cover
+\[
+\mathcal C^{=}
+=
+\{(\gamma_i,a_i,\pi_i^{=})\}_{i=1}^N
+\]
+together with its accepted global cover payload is already, by inspection, an accepted object of $\mathcal P_{\mathrm{tab}}(\mathfrak L)$ with exactly $N$ leaves. Therefore
+\[
+\mathrm{SCC}^{=}_{\mathcal P_{\mathrm{tab}}(\mathfrak L)}(g;D)
+\le
+\mathrm{VAC}^{=}_{\mathfrak L}(g;D).
+\]
+Conversely, every accepted object of $\mathcal P_{\mathrm{tab}}(\mathfrak L)$ explicitly stores a finite family of exact certified cells together with an accepted global cover payload, so it is itself exactly an exact certified cover. Hence its leaf count cannot be smaller than the minimum semantic cover size, giving
+\[
+\mathrm{VAC}^{=}_{\mathfrak L}(g;D)
+\le
+\mathrm{SCC}^{=}_{\mathcal P_{\mathrm{tab}}(\mathfrak L)}(g;D).
+\]
+Combining the two inequalities proves the exact-side claim. \qed
+
+Proposition~E.1 is conceptually important: for a fixed verifier-facing language, VAC is not merely analogous to proof size. It is already minimum proof size in the canonical zero-overhead syntax.
+
+\subsection{Leaf-Realizing and Cell-Complete Proof Languages}
+
+Section~\ref{sec:vac-proof-languages} defines VAC semantically. To compare VAC with any more structured syntax, we need only one interface notion: the syntax must realize semantic certified covers with at most constant-factor leaf overhead.
+
+\paragraph{Definition (syntactic certificate complexity).}
+For a proof language $\mathcal P$ over $\mathfrak L$, define
+\[
+\mathrm{SCC}^{=}_{\mathcal P}(g;D)
+:=
+\min\Bigl\{\,|\operatorname{Leaves}(P)|:
+\begin{array}{l}
+P\in\mathcal P\text{ is an accepted exact proof object}\\
+\text{for }(g,D)
+\end{array}
+\Bigr\},
+\]
+and
+\[
+\mathrm{SCC}^{\ge}_{\mathcal P}(g;D,t)
+:=
+\min\Bigl\{\,|\operatorname{Leaves}(P)|:
+\begin{array}{l}
+P\in\mathcal P\text{ is an accepted threshold proof object}\\
+\text{for }(g,D,t)
+\end{array}
+\Bigr\}.
+\]
+If no accepted proof object exists on the relevant side, the corresponding SCC value is defined to be $+\infty$.
+
+\paragraph{Definition (leaf-realizing proof language).}
+A proof language $\mathcal P$ is \emph{leaf-realizing} for $\mathfrak L$ on a given side if every leaf of every accepted proof object on that side denotes one certified cell from $\mathfrak L$.
+
+\paragraph{Definition ($c$-cell-complete proof language).}
+Fix $c\ge 1$. We say that $\mathcal P$ is \emph{$c$-cell-complete} for $\mathfrak L$ on a given side if:
+\begin{enumerate}
+    \item \emph{semantic extraction}: every accepted proof object $P$ on that side extracts to a certified cover of size at most $|\operatorname{Leaves}(P)|$;
+    \item \emph{syntactic realization}: every certified cover of size $N$ on that side compiles into an accepted proof object $P\in\mathcal P$ with
+    \[
+    |\operatorname{Leaves}(P)|\le cN.
+    \]
+\end{enumerate}
+The constant $c$ may depend on the fixed proof syntax and its compilation discipline, but not on the concrete instance $(g,D,t)$.
+
+\paragraph{Theorem E.2 (exact-side VAC--SCC equivalence).}
+If $\mathcal P$ is exact-side $c$-cell-complete for $\mathfrak L$, then
+\[
+\mathrm{VAC}^{=}_{\mathfrak L}(g;D)
+\le
+\mathrm{SCC}^{=}_{\mathcal P}(g;D)
+\le
+c\,\mathrm{VAC}^{=}_{\mathfrak L}(g;D).
+\]
+
+\paragraph{Proof.}
+For the left inequality, let $P$ be any accepted exact proof object. By semantic extraction, the extracted family $\operatorname{Cells}^{=}(P)$ is an exact certified cover of size at most $|\operatorname{Leaves}(P)|$. Hence
+\[
+\mathrm{VAC}^{=}_{\mathfrak L}(g;D)
+\le
+|\operatorname{Leaves}(P)|.
+\]
+Taking the minimum over all accepted exact proof objects yields
+\[
+\mathrm{VAC}^{=}_{\mathfrak L}(g;D)
+\le
+\mathrm{SCC}^{=}_{\mathcal P}(g;D).
+\]
+
+For the right inequality, if
+\[
+\mathrm{VAC}^{=}_{\mathfrak L}(g;D)=+\infty,
+\]
+there is nothing to prove. Otherwise choose an optimal exact certified cover
+\[
+\mathcal C^{=}
+\]
+of size
+\[
+|\mathcal C^{=}|=\mathrm{VAC}^{=}_{\mathfrak L}(g;D).
+\]
+By syntactic realization, this cover compiles into an accepted proof object $P_{\mathcal C}\in\mathcal P$ such that
+\[
+|\operatorname{Leaves}(P_{\mathcal C})|
+\le
+c\,|\mathcal C^{=}|
+=
+c\,\mathrm{VAC}^{=}_{\mathfrak L}(g;D).
+\]
+Minimizing over accepted exact proof objects gives
+\[
+\mathrm{SCC}^{=}_{\mathcal P}(g;D)
+\le
+c\,\mathrm{VAC}^{=}_{\mathfrak L}(g;D).
+\]
+This proves the exact-side equivalence. \qed
+
+\paragraph{Theorem E.3 (threshold-side VAC--SCC equivalence).}
+If $\mathcal P$ is threshold-side $c$-cell-complete for $\mathfrak L$, then
+\[
+\mathrm{VAC}^{\ge}_{\mathfrak L}(g;D,t)
+\le
+\mathrm{SCC}^{\ge}_{\mathcal P}(g;D,t)
+\le
+c\,\mathrm{VAC}^{\ge}_{\mathfrak L}(g;D,t).
+\]
+
+\paragraph{Proof.}
+The argument is identical to that of Theorem~E.2 after replacing ``exact certified cover'' everywhere by ``threshold certified cover.'' \qed
+
+\paragraph{Corollary E.4 (cell-complete syntaxes realize VAC without overhead beyond the realization constant).}
+If $\mathcal P$ is cell-complete on a given side, meaning $c=1$, then on that side
+\[
+\mathrm{SCC}_{\mathcal P}=\mathrm{VAC}_{\mathfrak L}.
+\]
+More generally, a $c$-cell-complete syntax changes minimum proof size only by the realization constant $c$.
+
+Thus, after fixing $\mathfrak L$, VAC is the semantic cover quantity, while SCC is the minimum leaf count in one chosen cell-complete realization of that quantity.
+
+\paragraph{Remark E.4A (Language relativity is essential).}
+All comparisons in this appendix are made after fixing the verifier-facing language $\mathfrak L$. Changing $\mathfrak L$ can change which cells and local payloads are admissible, and therefore can change VAC itself. Theorems~E.2--E.6 are not invariance claims across different verifier interfaces; they are realization and encoding comparisons relative to one fixed semantic layer.
+
+\subsection{Description Length and Linear Encoding Equivalence}
+
+Leaf count is the correct semantic size measure for the theorem map. Bit-length is one level lower still, because it depends on a concrete serialization of the chosen proof syntax.
+
+\paragraph{Definition (description length).}
+Fix a binary encoding scheme for the proof language $\mathcal P$. For every proof object $P\in\mathcal P$, let
+\[
+|P|_{\mathrm{bit}}
+\]
+denote the length of its encoding. Define
+\[
+\mathrm{DL}^{=}_{\mathcal P}(g;D)
+:=
+\min\Bigl\{\,|P|_{\mathrm{bit}}:
+P\in\mathcal P\text{ is an accepted exact proof object for }(g,D)\Bigr\},
+\]
+and
+\[
+\mathrm{DL}^{\ge}_{\mathcal P}(g;D,t)
+:=
+\min\Bigl\{\,|P|_{\mathrm{bit}}:
+P\in\mathcal P\text{ is an accepted threshold proof object for }(g,D,t)\Bigr\}.
+\]
+If no accepted proof object exists on the relevant side, the corresponding description length is defined to be $+\infty$.
+
+\paragraph{Definition (linear encoding property).}
+We say that the chosen binary encoding of $\mathcal P$ is \emph{linear} if there exist constants
+\[
+0<b_-\le b_+,
+\qquad
+b_0\ge 0,
+\]
+depending only on the fixed syntax and fixed serialization scheme, such that every accepted proof object $P$ satisfies
+\begin{equation}
+ b_-\,|\operatorname{Leaves}(P)|-b_0
+ \le
+ |P|_{\mathrm{bit}}
+ \le
+ b_+\,|\operatorname{Leaves}(P)|+b_0.
+ \label{eq:app-linear-encoding}
+\end{equation}
+This hypothesis isolates exactly the regime in which bit-length and leaf count stay on the same scale: bounded global headers, bounded per-leaf control overhead, and no superlinear duplication or compression effect as a function of the number of leaves.
+
+\paragraph{Theorem E.5 (exact-side SCC--DL linear equivalence).}
+Assume the encoding of $\mathcal P$ is linear in the sense of \eqref{eq:app-linear-encoding}. Then the following are equivalent:
+\begin{enumerate}
+    \item there exists an accepted exact proof object for $(g,D)$;
+    \item $\mathrm{SCC}^{=}_{\mathcal P}(g;D)<+\infty$;
+    \item $\mathrm{DL}^{=}_{\mathcal P}(g;D)<+\infty$.
+\end{enumerate}
+Moreover, whenever these quantities are finite,
+\[
+ b_-\,\mathrm{SCC}^{=}_{\mathcal P}(g;D)-b_0
+ \le
+ \mathrm{DL}^{=}_{\mathcal P}(g;D)
+ \le
+ b_+\,\mathrm{SCC}^{=}_{\mathcal P}(g;D)+b_0.
+\]
+
+\paragraph{Proof.}
+The equivalence of the three finiteness statements is immediate from the definitions: an accepted exact proof object exists if and only if the feasible set over which $\mathrm{SCC}^{=}_{\mathcal P}(g;D)$ is minimized is nonempty, and this is exactly the same feasible set over which $\mathrm{DL}^{=}_{\mathcal P}(g;D)$ is minimized.
+
+Assume now that accepted exact proof objects exist. Let $P_\ast$ be one whose leaf count is minimum. Then
+\[
+|\operatorname{Leaves}(P_\ast)|=\mathrm{SCC}^{=}_{\mathcal P}(g;D).
+\]
+Applying the upper bound in \eqref{eq:app-linear-encoding} gives
+\[
+|P_\ast|_{\mathrm{bit}}
+\le
+b_+\,|\operatorname{Leaves}(P_\ast)|+b_0
+=
+b_+\,\mathrm{SCC}^{=}_{\mathcal P}(g;D)+b_0.
+\]
+Since $\mathrm{DL}^{=}_{\mathcal P}(g;D)$ is the minimum bit-length over all accepted exact proof objects,
+\[
+\mathrm{DL}^{=}_{\mathcal P}(g;D)
+\le
+b_+\,\mathrm{SCC}^{=}_{\mathcal P}(g;D)+b_0.
+\]
+
+For the lower bound, let $Q_\ast$ be an accepted exact proof object of minimum bit-length. Then
+\[
+|Q_\ast|_{\mathrm{bit}}=\mathrm{DL}^{=}_{\mathcal P}(g;D).
+\]
+Applying the lower bound in \eqref{eq:app-linear-encoding} yields
+\[
+\mathrm{DL}^{=}_{\mathcal P}(g;D)
+=
+|Q_\ast|_{\mathrm{bit}}
+\ge
+b_-\,|\operatorname{Leaves}(Q_\ast)|-b_0.
+\]
+Because $Q_\ast$ is just one accepted exact proof object, its leaf count is at least the minimum accepted leaf count, namely
+\[
+|\operatorname{Leaves}(Q_\ast)|
+\ge
+\mathrm{SCC}^{=}_{\mathcal P}(g;D).
+\]
+Therefore
+\[
+\mathrm{DL}^{=}_{\mathcal P}(g;D)
+\ge
+b_-\,\mathrm{SCC}^{=}_{\mathcal P}(g;D)-b_0.
+\]
+Combining the two inequalities proves the exact-side statement. \qed
+
+\paragraph{Theorem E.6 (threshold-side SCC--DL linear equivalence).}
+Under the same linear encoding hypothesis, the following are equivalent:
+\begin{enumerate}
+    \item there exists an accepted threshold proof object for $(g,D,t)$;
+    \item $\mathrm{SCC}^{\ge}_{\mathcal P}(g;D,t)<+\infty$;
+    \item $\mathrm{DL}^{\ge}_{\mathcal P}(g;D,t)<+\infty$.
+\end{enumerate}
+Whenever these quantities are finite,
+\[
+ b_-\,\mathrm{SCC}^{\ge}_{\mathcal P}(g;D,t)-b_0
+ \le
+ \mathrm{DL}^{\ge}_{\mathcal P}(g;D,t)
+ \le
+ b_+\,\mathrm{SCC}^{\ge}_{\mathcal P}(g;D,t)+b_0.
+\]
+
+\paragraph{Proof.}
+The proof is identical to that of Theorem~E.5 after replacing accepted exact proof objects by accepted threshold proof objects throughout. \qed
+
+\paragraph{Corollary E.7 (VAC, SCC, and DL lie on one linear scale under the appendix hypotheses).}
+If $\mathcal P$ is $c$-cell-complete for $\mathfrak L$ on a given side and its encoding is linear, then on that side VAC, SCC, and DL are linearly comparable. Concretely:
+\begin{itemize}
+    \item on the exact side,
+    \[
+     b_-\,\mathrm{VAC}^{=}_{\mathfrak L}(g;D)-b_0
+     \le
+     \mathrm{DL}^{=}_{\mathcal P}(g;D)
+     \le
+     b_+c\,\mathrm{VAC}^{=}_{\mathfrak L}(g;D)+b_0;
+    \]
+    \item on the threshold side,
+    \[
+     b_-\,\mathrm{VAC}^{\ge}_{\mathfrak L}(g;D,t)-b_0
+     \le
+     \mathrm{DL}^{\ge}_{\mathcal P}(g;D,t)
+     \le
+     b_+c\,\mathrm{VAC}^{\ge}_{\mathfrak L}(g;D,t)+b_0.
+    \]
+\end{itemize}
+
+\paragraph{Proof.}
+Combine Theorems~E.2--E.3 with Theorems~E.5--E.6. \qed
+
+This appendix therefore formalizes the three-layer interpretation used in the main text, all relative to a fixed verifier-facing language $\mathfrak L$:
+\begin{itemize}
+    \item VAC is \emph{semantic cover complexity};
+    \item SCC is \emph{syntactic realization complexity};
+    \item DL is \emph{bit-level description complexity}.
+\end{itemize}
+VAC is independent of the chosen syntax once $\mathfrak L$ is fixed, while SCC and DL additionally depend on the realization and encoding choices.
+
+\subsection{Arrangement Count as a Restricted Exact-Side Degeneration}
+
+Arrangement count is sometimes treated as if it were the natural complexity measure for CPWL verification. In this paper it is not. It reappears only in a narrow exact-side regime in which function geometry and verifier language geometry align almost perfectly.
+
+The relevant language is the guard language of Section~\ref{sec:guard-exactification}. A guard-realizable exact certified cell is an exact certified cell of the form
+\[
+\mathfrak c=(S,a,\pi^{=}),
+\qquad
+|\mathfrak c|=D_S,
+\]
+where $S$ is a guard set and the verifier accepts
+\[
+g(x)=a(x)
+\qquad \forall x\in D_S.
+\]
+We say that such a cell is \emph{connected} if $D_S$ is connected.
+
+\paragraph{Definition (maximal connected exact-affine region).}
+A set $U\subseteq D$ is an \emph{exact-affine connected region} if:
+\begin{enumerate}
+    \item $U$ is nonempty and connected;
+    \item there exists an affine function $a_U$ such that
+    \[
+    g(x)=a_U(x)
+    \qquad \forall x\in U.
+    \]
+\end{enumerate}
+It is \emph{maximal} if it is inclusion-maximal among connected exact-affine subsets of $D$.
+
+Suppose the maximal connected exact-affine regions of $g$ on $D$ are
+\[
+U_1,\dots,U_M.
+\]
+This number is the connected arrangement count relevant to the present discussion.
+
+\paragraph{Proposition E.8 (arrangement degeneration under connected realizability and witness separation).}
+Assume that:
+\begin{enumerate}
+    \item for each maximal connected exact-affine region $U_j$, there exists one connected guard-realizable exact certified cell
+    \[
+    \mathfrak c_j=(S_j,a_j,\pi_j^{=})
+    \]
+    whose semantic domain is exactly
+    \[
+    |\mathfrak c_j|=U_j;
+    \]
+    \item for each $j$, there exists a witness point
+    \[
+    x_j\in U_j\setminus \bigcup_{i\neq j}U_i.
+    \]
+\end{enumerate}
+Then the minimum number of connected guard-realizable exact certified cells needed to cover $D$ is exactly $M$.
+
+\paragraph{Proof.}
+The realizability assumption immediately gives an exact connected cover with one certified cell per maximal region, so the minimum is at most $M$.
+
+For the reverse inequality, let
+\[
+\mathfrak c=(S,a,\pi^{=})
+\]
+be any connected guard-realizable exact certified cell. By local soundness,
+\[
+g(x)=a(x)
+\qquad \forall x\in D_S,
+\]
+and by connectedness $D_S$ is a connected exact-affine subset of $D$. Therefore, by maximality of the regions $U_1,\dots,U_M$, there exists some index $r$ such that
+\[
+D_S\subseteq U_r.
+\]
+In particular, one connected exact certified cell cannot simultaneously contain witness points from two different maximal regions. Indeed, if both $x_j$ and $x_{j'}$ belonged to $D_S$, then both would belong to the same maximal region $U_r$, contradicting the witness-separation property unless $j=j'=r$.
+
+Hence each connected exact certified cell can cover at most one of the witness points $x_1,\dots,x_M$. Any connected exact certified cover of $D$ must therefore use at least $M$ cells. Combining this with the upper bound proves that the minimum is exactly $M$. \qed
+
+\paragraph{Why this is only a degeneration.}
+Proposition~E.8 also explains why arrangement count is not, in general, the semantic cover quantity studied in the paper.
+\begin{enumerate}
+    \item A geometric exact-affine piece may fail to be realizable as one verifier-admissible exact cell.
+    \item If disconnected cells are allowed, several disjoint exact-affine pieces carrying the same affine label may be merged by one exact certified cell.
+    \item Threshold proofs require only local threshold validity, not exact affine recovery, so threshold-side complexity is naturally measured by threshold certified covers rather than exact-affine regions.
+\end{enumerate}
+Thus arrangement count is a legitimate exact-side boundary case only under additional connected-realizability and witness-separation assumptions. Outside that restricted regime, the relevant fixed-language semantic cover quantity remains verifier-aligned cover complexity itself.
