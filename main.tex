@@ -436,7 +436,26 @@ This paper resolves one specific proof-complexity question for proof-producing C
 
 At the same time, the scope is intentionally limited. The structural theorem is proved for CPWL expression graphs over nonempty compact domains; VAC is language-relative by design; and the hardness theorem is unconditional only for unrestricted explicit dictionaries, with transfer to concrete pipelines requiring additional representability assumptions on the exposed candidate-family class.
 
-The resulting picture is therefore layered rather than absolute: arrangement count, proof syntax, and bit-level encoding are not the semantic cover quantity itself. Once the verifier-facing language is fixed, VAC is the semantic cover quantity being realized, while SCC and DL record realization and encoding overhead.
+The resulting picture is therefore layered rather than absolute: arrangement count, proof syntax, and bit-level encoding are not the semantic cover quantity itself. Once the verifier-facing language is fixed, VAC is the semantic cover quantity being realized, while SCC and DL record realization and encoding overhead
+
+
+% Results.tex
+% Main-text compact experimental summary.
+% This fragment assumes Appendix_I.tex is included elsewhere in the paper,
+% so that labels such as \ref{app:experiments} and \ref{fig:appI-exact-scaling}
+% are available after a full document compile.
+
+\section{Experimental Results}
+\label{sec:results}
+
+We evaluate the saved v3 artifact on 126 exact-side instances together with matching canonical true-threshold tasks, false controls, curated threshold-stage subsets, selection-stage subsets, and realization measurements. Gold Tiny is the only exhaustive suite in the current artifact, so outside it we do not claim ground-truth VAC values: on the exact side we report accepted exactification upper bounds $U_{\mathrm{eq}}^{\mathrm{align}}$ and exposed exact optima, while on the threshold side we report transfer upper bounds $U_{\ge}^{\mathrm{transfer}}$, exposed optima over the bounded threshold language implemented by the pipeline, and certified exposed lower bounds. Detailed plots and per-family breakdowns are deferred to Appendix~\ref{app:experiments}.
+
+The exact-side results support the finite exactification story. All 126 instances complete, and $U_{\mathrm{eq}}^{\mathrm{align}}$ grows with the number of compiled comparison hyperplanes $H$ while staying far below the crude $2^H$ envelope (Appendix~\ref{app:experiments}, Fig.~\ref{fig:appI-exact-scaling}). The median accepted exact upper bounds are $32.5$, $34.0$, and $33.0$ on Family A, Family B, and ThresholdStress, compared with $2.0$ on the exhaustive Gold Tiny suite. Exact compression is usually tight: the median ratio $U_{\mathrm{eq}}^{\mathrm{align}} / \mathrm{OPT}_{\mathrm{eq}}^{\mathrm{exposed}}$ is $1.0\times$ on Family A, Family B, Gold Tiny, and ThresholdStress. The main exception is SelectionStress, whose median compression factor is $12.5\times$, confirming that candidate exposure and semantic optimum can separate substantially even when the constructive exactification bound remains moderate.
+
+Threshold-side behavior matches the theory but is not captured by a single monotone slogan. On all 126 false controls the artifact finds no finite accepted threshold cover, while on all 126 canonical true-threshold tasks the transfer upper bound dominates the exposed threshold optimum. On the curated threshold subset, enlarging the exposed threshold language from $D_{\mathrm{transfer}}$ to $+D_{\mathrm{drop}}$ reduces the median exposed optimum from $38.0$ to $19.5$, with the median exposed lower bound staying at $16.0$. In most benchmark families the exposed threshold optimum is smaller than the exposed exact optimum, but this is not universal: the only 12 instances with $\mathrm{OPT}_{\ge}^{\mathrm{exposed}} > \mathrm{OPT}_{=}^{\mathrm{exposed}}$ all come from SelectionStress. We therefore state threshold results in the language-relative form used throughout the artifact rather than as a blanket claim that threshold covers are always easier.
+
+The selection and realization experiments complete the picture. On the curated explicit-candidate subset, the selection dictionary grows from a median of $40.5$ candidates at $D_{\mathrm{leaf}}$ to $586.0$ at $+D_{\mathrm{drop}}$, while the median exposed exact optimum collapses from $40.5$ to $3.0$; this is direct evidence of selection-layer compression after candidate exposure. On the realization side, compact/core proof size is almost perfectly linear in proof-cell count (Pearson correlation $0.995$, fitted slope $\approx 206$ bytes per cell), whereas archive bundles are much larger and strongly family-dependent, with median archive-to-core ratios ranging from $5.1\times$ on Gold Tiny to $251.7\times$ on SelectionStress. Core checking remains sub-millisecond on the saved bundle, and exactification generation stays below $5.8$ seconds on every shipped instance. Overall, the experiments support three empirical claims: exactification yields observable finite covers at moderate constructive cost, threshold and selection exposure can materially change the optimum before any hardness statement is invoked, and compact/core realizations---not full archives---are the correct object to compare at the SCC/DL-facing layer.
+
 
 
 % Uncomment for the final version if needed.
